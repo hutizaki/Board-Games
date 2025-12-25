@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Player } from '../types';
+import type { Player } from '../types';
 
 interface Props {
   players: Player[];

@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { Player } from '../types';
-import { Category } from '../categories';
+import type { Player } from '../types';
+import type { Category } from '../categories';
 
 interface Props {
   player: Player;

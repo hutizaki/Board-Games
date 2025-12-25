@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Category } from '../categories';
+import type { Category } from '../categories';
 
 interface Props {
   categories: Category[];

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Category } from '../categories';
-import { GameSettings } from '../types';
+import type { Category } from '../categories';
+import type { GameSettings } from '../types';
 
 interface Props {
   category: Category;

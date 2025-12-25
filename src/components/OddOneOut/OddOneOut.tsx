@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { PRESET_CATEGORIES, Category } from './categories';
-import { GameState, Player, GameSettings } from './types';
+import { PRESET_CATEGORIES, type Category } from './categories';
+import type { GameState, Player, GameSettings } from './types';
 import CategorySelection from './screens/CategorySelection';
 import GameSetup from './screens/GameSetup';
 import PlayerLobby from './screens/PlayerLobby';

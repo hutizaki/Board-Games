@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
-import { Player, GameSettings } from '../types';
-import { Category } from '../categories';
+import type { Player, GameSettings } from '../types';
+import type { Category } from '../categories';
 
 interface Props {
   players: Player[];
@@ -12,7 +12,7 @@ interface Props {
   onHome: () => void;
 }
 
-export default function PlayerLobby({ players, category, settings, allRevealed, onReveal, onStartVoting, onHome }: Props) {
+export default function PlayerLobby({ players, allRevealed, onReveal, onStartVoting, onHome }: Props) {
   return (
     <motion.div
       initial={{ opacity: 0 }}
