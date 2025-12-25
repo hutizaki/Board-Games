@@ -5,8 +5,10 @@ import ScrabbleBoard from './ScrabbleBoard'
 import OddOneOut from './OddOneOut'
 
 function App() {
+  const basename = import.meta.env.MODE === 'production' ? '/Board-Games' : '';
+  
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={basename}>
       <Routes>
         <Route path="/" element={<Homepage />} />
         <Route path="/scrabble" element={<ScrabbleBoard />} />
