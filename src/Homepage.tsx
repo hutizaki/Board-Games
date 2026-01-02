@@ -13,9 +13,7 @@ interface Game {
 
 const tempGames: Game[] = [
   { id: 1, name: 'Scrabble', svg: ScrabbleLogo, route: '/scrabble' },
-  { id: 2, name: 'Odd One Out', image: OddOneOutLogo, route: '/odd-one-out' },
-  { id: 3, name: 'Ticket to Ride', image: '', route: '/ticket-to-ride' },
-  { id: 4, name: 'Wingspan', image: '', route: '/wingspan' }
+  { id: 2, name: 'Odd One Out', image: OddOneOutLogo, route: '/odd-one-out' }
 ]
 
 function Homepage() {
