@@ -1,5 +1,19 @@
 /* NERTZ Global Styles */
 
+/* Disable scrolling and prevent page movement */
+.nertz-app {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
+  width: 100vw;
+  height: 100vh;
+  touch-action: none; /* Prevent touch scrolling */
+  overscroll-behavior: none; /* Prevent pull-to-refresh and overscroll */
+}
+
 /* Main Menu Headings (White text with dark shadows) */
 .nertz-heading {
   color: #ffffff; /* White text */
