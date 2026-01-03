@@ -12,16 +12,20 @@ import nertzLogo from '../../../assets/Nertz/nertzLogo.png';
 // Import UI icons
 import arrowIcon from '../../../assets/Nertz/arrow.png';
 import startGameButton from '../../../assets/Nertz/startGame.png';
-import deckBanner from '../../../assets/Nertz/deckBanner.png';
 import aceBlack from '../../../assets/Nertz/aceBlack.png';
 import aceRed from '../../../assets/Nertz/aceRed.png';
+
+// Import banners
+import deckBanner from '../../../assets/Nertz/numberPad/banners/deckBanner.png';
+import cardHandBanner from '../../../assets/Nertz/numberPad/banners/cardHandBanner.png';
+import cardMiddleBanner from '../../../assets/Nertz/numberPad/banners/cardMiddleBanner.png';
 
 // Import audio
 import countdownAudio from '../../../assets/Nertz/countdown.opus';
 import nertzSoundEffect from '../../../assets/Nertz/NERTZ.opus';
 import gameMusic from '../../../assets/Nertz/music.opus';
 
-// Import number images
+// Import number images (for countdown)
 import number0 from '../../../assets/Nertz/numbers/0.png';
 import number1 from '../../../assets/Nertz/numbers/1.png';
 import number2 from '../../../assets/Nertz/numbers/2.png';
@@ -35,6 +39,20 @@ import number9 from '../../../assets/Nertz/numbers/9.png';
 import number10 from '../../../assets/Nertz/numbers/10.png';
 import number11 from '../../../assets/Nertz/numbers/11.png';
 import number12 from '../../../assets/Nertz/numbers/12.png';
+
+// Import numpad button images
+import numpad0 from '../../../assets/Nertz/numberPad/numpad0.png';
+import numpad1 from '../../../assets/Nertz/numberPad/numpad1.png';
+import numpad2 from '../../../assets/Nertz/numberPad/numpad2.png';
+import numpad3 from '../../../assets/Nertz/numberPad/numpad3.png';
+import numpad4 from '../../../assets/Nertz/numberPad/numpad4.png';
+import numpad5 from '../../../assets/Nertz/numberPad/numpad5.png';
+import numpad6 from '../../../assets/Nertz/numberPad/numpad6.png';
+import numpad7 from '../../../assets/Nertz/numberPad/numpad7.png';
+import numpad8 from '../../../assets/Nertz/numberPad/numpad8.png';
+import numpad9 from '../../../assets/Nertz/numberPad/numpad9.png';
+import numpadBackspace from '../../../assets/Nertz/numberPad/numpadBackspace.png';
+import numpadEnter from '../../../assets/Nertz/numberPad/numpadEnter.png';
 
 // Import 8 pack cards
 import pink8 from '../../../assets/Nertz/8_Pack/pink.png';
@@ -107,7 +125,7 @@ const DECK_COLORS: Record<DeckType, CardColor[]> = {
 
 const BICYCLE_ORANGE = '#f17821';
 
-// Number images mapping
+// Number images mapping (for countdown)
 const NUMBER_IMAGES: Record<number, string> = {
   0: number0,
   1: number1,
@@ -122,6 +140,20 @@ const NUMBER_IMAGES: Record<number, string> = {
   10: number10,
   11: number11,
   12: number12
+};
+
+// Numpad button images mapping
+const NUMPAD_IMAGES: Record<number, string> = {
+  0: numpad0,
+  1: numpad1,
+  2: numpad2,
+  3: numpad3,
+  4: numpad4,
+  5: numpad5,
+  6: numpad6,
+  7: numpad7,
+  8: numpad8,
+  9: numpad9,
 };
 
 export default function NertzScorekeeper() {
@@ -463,12 +495,20 @@ export default function NertzScorekeeper() {
                     onClick={() => setDeckType('8 pack')}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    className={`px-8 py-4 rounded-2xl font-black text-2xl transition-all ${
+                    className={`px-8 py-2.5 rounded-2xl font-bold text-2xl transition-all ${
                       deckType === '8 pack'
-                        ? 'bg-gradient-to-r from-orange-400 to-red-400 text-white scale-105 shadow-xl'
-                        : 'bg-white bg-opacity-80 text-gray-700 shadow-md'
+                        ? 'bg-gradient-to-b from-orange-400 to-red-500 text-white scale-105'
+                        : 'bg-gradient-to-b from-white to-gray-100 text-gray-700'
                     }`}
-                    style={{ fontFamily: "'Comic Neue', 'Comic Sans MS', cursive" }}
+                    style={{ 
+                      fontFamily: "'Comic Neue', 'Comic Sans MS', cursive",
+                      boxShadow: deckType === '8 pack' 
+                        ? '0 4px 0 0 #b91c1c, 0 5px 8px rgba(0,0,0,0.3)'
+                        : '0 4px 0 0 #9ca3af, 0 5px 8px rgba(0,0,0,0.2)',
+                      borderTop: '2px solid rgba(255,255,255,0.3)',
+                      transform: 'translateY(0)',
+                      transition: 'all 0.1s'
+                    }}
                   >
                     8 PACK
                   </motion.button>
@@ -476,12 +516,20 @@ export default function NertzScorekeeper() {
                     onClick={() => setDeckType('12 pack')}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    className={`px-8 py-4 rounded-2xl font-black text-2xl transition-all ${
+                    className={`px-8 py-2.5 rounded-2xl font-bold text-2xl transition-all ${
                       deckType === '12 pack'
-                        ? 'bg-gradient-to-r from-orange-400 to-red-400 text-white scale-105 shadow-xl'
-                        : 'bg-white bg-opacity-80 text-gray-700 shadow-md'
+                        ? 'bg-gradient-to-b from-orange-400 to-red-500 text-white scale-105'
+                        : 'bg-gradient-to-b from-white to-gray-100 text-gray-700'
                     }`}
-                    style={{ fontFamily: "'Comic Neue', 'Comic Sans MS', cursive" }}
+                    style={{ 
+                      fontFamily: "'Comic Neue', 'Comic Sans MS', cursive",
+                      boxShadow: deckType === '12 pack' 
+                        ? '0 4px 0 0 #b91c1c, 0 5px 8px rgba(0,0,0,0.3)'
+                        : '0 4px 0 0 #9ca3af, 0 5px 8px rgba(0,0,0,0.2)',
+                      borderTop: '2px solid rgba(255,255,255,0.3)',
+                      transform: 'translateY(0)',
+                      transition: 'all 0.1s'
+                    }}
                   >
                     12 PACK
                   </motion.button>
@@ -489,10 +537,11 @@ export default function NertzScorekeeper() {
 
                 {/* Color Grid */}
                 <motion.div
+                  key={deckType}
                   className={`grid grid-cols-4 ${deckType === '8 pack' ? 'gap-2.5 max-w-3xl' : 'gap-1 max-w-xl'}`}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.5, duration: 0.5 }}
+                  transition={{ delay: 0.3, duration: 0.4 }}
                 >
                   {availableColors.map((cardColor, index) => {
                     const isSelected = selectedColors.includes(cardColor.id);
@@ -504,7 +553,7 @@ export default function NertzScorekeeper() {
                         whileTap={{ scale: 0.95 }}
                         initial={{ opacity: 0, scale: 0.8 }}
                         animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: 0.6 + index * 0.03, type: 'spring', stiffness: 300 }}
+                        transition={{ delay: 0.4 + index * 0.03, type: 'spring', stiffness: 300 }}
                         className="relative rounded-lg overflow-hidden"
                         style={{
                           aspectRatio: '730/1048',
@@ -724,9 +773,11 @@ export default function NertzScorekeeper() {
                 {teams[currentInputTeam].name}
               </h2>
               
-              <p className="text-3xl sm:text-4xl font-black mb-6" style={{ fontFamily: "'Comic Neue', 'Comic Sans MS', cursive", color: '#ffffff' }}>
-                Cards remaining in hand?
-              </p>
+              <img 
+                src={cardHandBanner} 
+                alt="Cards remaining in hand?"
+                className="w-full max-w-xl h-auto mb-4"
+              />
 
               {/* Input Display - iOS Calculator style */}
               <div
@@ -777,66 +828,58 @@ export default function NertzScorekeeper() {
               </div>
 
               {/* Mobile/Tablet/iPad: Show numpad */}
-              <div className="lg:hidden grid grid-cols-3 gap-3 sm:gap-4 w-full max-w-sm mt-4">
+              <div className="lg:hidden grid grid-cols-3 gap-2 w-full max-w-sm mt-4">
                 {/* Numbers 1-9 */}
                 {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
                   <motion.button
                     key={num}
-                    whileTap={{ scale: 0.9 }}
+                    whileTap={{ scale: 0.95 }}
                     onClick={() => handleNumpadPress(num.toString())}
-                    className="aspect-square rounded-2xl shadow-lg p-3 flex items-center justify-center"
-                    style={{
-                      background: 'linear-gradient(135deg, #4a5568 0%, #2d3748 100%)'
-                    }}
+                    className="p-0 m-0 border-0 bg-transparent"
                   >
                     <img 
-                      src={NUMBER_IMAGES[num]} 
+                      src={NUMPAD_IMAGES[num]} 
                       alt={num.toString()}
                       className="w-full h-full object-contain"
-                      style={{ filter: 'drop-shadow(2px 2px 4px rgba(0,0,0,0.3))' }}
                     />
                   </motion.button>
                 ))}
                 
                 {/* Bottom row: Backspace, 0, Enter */}
                 <motion.button
-                  whileTap={{ scale: 0.9 }}
+                  whileTap={{ scale: 0.95 }}
                   onClick={() => handleNumpadPress('backspace')}
-                  className="aspect-square rounded-2xl text-3xl font-black text-white shadow-lg flex items-center justify-center"
-                  style={{
-                    background: 'linear-gradient(135deg, #e53e3e 0%, #c53030 100%)',
-                    fontFamily: "'Comic Neue', 'Comic Sans MS', cursive"
-                  }}
-                >
-                  ←
-                </motion.button>
-
-                <motion.button
-                  whileTap={{ scale: 0.9 }}
-                  onClick={() => handleNumpadPress('0')}
-                  className="aspect-square rounded-2xl shadow-lg p-3 flex items-center justify-center"
-                  style={{
-                    background: 'linear-gradient(135deg, #4a5568 0%, #2d3748 100%)'
-                  }}
+                  className="p-0 m-0 border-0 bg-transparent"
                 >
                   <img 
-                    src={NUMBER_IMAGES[0]} 
-                    alt="0"
+                    src={numpadBackspace} 
+                    alt="Backspace"
                     className="w-full h-full object-contain"
-                    style={{ filter: 'drop-shadow(2px 2px 4px rgba(0,0,0,0.3))' }}
                   />
                 </motion.button>
 
                 <motion.button
-                  whileTap={{ scale: 0.9 }}
-                  onClick={() => handleNumpadPress('enter')}
-                  className="aspect-square rounded-2xl text-3xl font-black text-white shadow-lg flex items-center justify-center"
-                  style={{
-                    background: `linear-gradient(135deg, ${BICYCLE_ORANGE} 0%, #d65a0f 100%)`,
-                    fontFamily: "'Comic Neue', 'Comic Sans MS', cursive"
-                  }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => handleNumpadPress('0')}
+                  className="p-0 m-0 border-0 bg-transparent"
                 >
-                  ✓
+                  <img 
+                    src={NUMPAD_IMAGES[0]} 
+                    alt="0"
+                    className="w-full h-full object-contain"
+                  />
+                </motion.button>
+
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => handleNumpadPress('enter')}
+                  className="p-0 m-0 border-0 bg-transparent"
+                >
+                  <img 
+                    src={numpadEnter} 
+                    alt="Enter"
+                    className="w-full h-full object-contain"
+                  />
                 </motion.button>
               </div>
             </motion.div>
@@ -870,9 +913,11 @@ export default function NertzScorekeeper() {
                 {teams[currentInputTeam].name}
               </h2>
               
-              <p className="text-3xl sm:text-4xl font-black mb-6" style={{ fontFamily: "'Comic Neue', 'Comic Sans MS', cursive", color: '#ffffff' }}>
-                Cards in middle pile?
-              </p>
+              <img 
+                src={cardMiddleBanner} 
+                alt="Cards in middle pile?"
+                className="w-full max-w-xl h-auto mb-4"
+              />
 
               {/* Input Display - iOS Calculator style */}
               <div
@@ -923,66 +968,58 @@ export default function NertzScorekeeper() {
               </div>
 
               {/* Mobile/Tablet/iPad: Show numpad */}
-              <div className="lg:hidden grid grid-cols-3 gap-3 sm:gap-4 w-full max-w-sm mt-4">
+              <div className="lg:hidden grid grid-cols-3 gap-2 w-full max-w-sm mt-4">
                 {/* Numbers 1-9 */}
                 {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
                   <motion.button
                     key={num}
-                    whileTap={{ scale: 0.9 }}
+                    whileTap={{ scale: 0.95 }}
                     onClick={() => handleNumpadPress(num.toString())}
-                    className="aspect-square rounded-2xl shadow-lg p-3 flex items-center justify-center"
-                    style={{
-                      background: 'linear-gradient(135deg, #4a5568 0%, #2d3748 100%)'
-                    }}
+                    className="p-0 m-0 border-0 bg-transparent"
                   >
                     <img 
-                      src={NUMBER_IMAGES[num]} 
+                      src={NUMPAD_IMAGES[num]} 
                       alt={num.toString()}
                       className="w-full h-full object-contain"
-                      style={{ filter: 'drop-shadow(2px 2px 4px rgba(0,0,0,0.3))' }}
                     />
                   </motion.button>
                 ))}
                 
                 {/* Bottom row: Backspace, 0, Enter */}
                 <motion.button
-                  whileTap={{ scale: 0.9 }}
+                  whileTap={{ scale: 0.95 }}
                   onClick={() => handleNumpadPress('backspace')}
-                  className="aspect-square rounded-2xl text-3xl font-black text-white shadow-lg flex items-center justify-center"
-                  style={{
-                    background: 'linear-gradient(135deg, #e53e3e 0%, #c53030 100%)',
-                    fontFamily: "'Comic Neue', 'Comic Sans MS', cursive"
-                  }}
-                >
-                  ←
-                </motion.button>
-
-                <motion.button
-                  whileTap={{ scale: 0.9 }}
-                  onClick={() => handleNumpadPress('0')}
-                  className="aspect-square rounded-2xl shadow-lg p-3 flex items-center justify-center"
-                  style={{
-                    background: 'linear-gradient(135deg, #4a5568 0%, #2d3748 100%)'
-                  }}
+                  className="p-0 m-0 border-0 bg-transparent"
                 >
                   <img 
-                    src={NUMBER_IMAGES[0]} 
-                    alt="0"
+                    src={numpadBackspace} 
+                    alt="Backspace"
                     className="w-full h-full object-contain"
-                    style={{ filter: 'drop-shadow(2px 2px 4px rgba(0,0,0,0.3))' }}
                   />
                 </motion.button>
 
                 <motion.button
-                  whileTap={{ scale: 0.9 }}
-                  onClick={() => handleNumpadPress('enter')}
-                  className="aspect-square rounded-2xl text-3xl font-black text-white shadow-lg flex items-center justify-center"
-                  style={{
-                    background: `linear-gradient(135deg, ${BICYCLE_ORANGE} 0%, #d65a0f 100())`,
-                    fontFamily: "'Comic Neue', 'Comic Sans MS', cursive"
-                  }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => handleNumpadPress('0')}
+                  className="p-0 m-0 border-0 bg-transparent"
                 >
-                  ✓
+                  <img 
+                    src={NUMPAD_IMAGES[0]} 
+                    alt="0"
+                    className="w-full h-full object-contain"
+                  />
+                </motion.button>
+
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => handleNumpadPress('enter')}
+                  className="p-0 m-0 border-0 bg-transparent"
+                >
+                  <img 
+                    src={numpadEnter} 
+                    alt="Enter"
+                    className="w-full h-full object-contain"
+                  />
                 </motion.button>
               </div>
             </motion.div>

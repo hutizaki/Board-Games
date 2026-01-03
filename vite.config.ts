@@ -8,13 +8,7 @@ export default defineConfig({
   base: process.env.NODE_ENV === 'production' ? '/Board-Games/' : '/',
   build: {
     // Optimize for performance
-    minify: 'terser',
-    terserOptions: {
-      compress: {
-        drop_console: true, // Remove console.logs in production
-        drop_debugger: true
-      }
-    },
+    minify: 'esbuild',
     // Optimize chunk sizes
     rollupOptions: {
       output: {
