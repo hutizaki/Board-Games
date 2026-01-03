@@ -13,7 +13,16 @@ import nertzLogo from '../../../assets/Nertz/buttons/nertzLogo.png';
 import arrowIcon from '../../../assets/Nertz/buttons/arrow.png';
 import startGameButton from '../../../assets/Nertz/buttons/startGame.png';
 import continueButton from '../../../assets/Nertz/buttons/continue.png';
+import exitGameButton from '../../../assets/Nertz/buttons/exitGame.png';
+import gameOverImage from '../../../assets/Nertz/gameOver.png';
 import scorePlaque from '../../../assets/Nertz/scorePlaque.png';
+import plaqueTop from '../../../assets/Nertz/plaqueSections/currentStanding/plaqueTop.png';
+import plaqueMiddle from '../../../assets/Nertz/plaqueSections/currentStanding/plaqueMiddle.png';
+import plaqueBottom from '../../../assets/Nertz/plaqueSections/currentStanding/plaqueBottom.png';
+import leaderboardPlaqueTop from '../../../assets/Nertz/plaqueSections/leaderboard/leaderboardPlaqueTop.png';
+import leaderboardPlaqueMiddle from '../../../assets/Nertz/plaqueSections/leaderboard/leaderboardPlaqueMiddle.png';
+import leaderboardPlaqueBottom from '../../../assets/Nertz/plaqueSections/leaderboard/leaderboardPlaqueBottom.png';
+import crest from '../../../assets/Nertz/plaqueSections/crest.png';
 import aceBlack from '../../../assets/Nertz/aceBlack.png';
 import aceRed from '../../../assets/Nertz/aceRed.png';
 
@@ -798,10 +807,18 @@ export default function NertzScorekeeper() {
               className="min-h-screen flex flex-col items-center justify-center text-center px-4"
             >
               <h2 
-                className="text-4xl font-bold mb-8"
+                className="text-7xl sm:text-8xl font-black mb-8"
                 style={{ 
-                  color: '#333',
-                  fontFamily: "'Comic Neue', 'Comic Sans MS', cursive"
+                  color: '#ffffff',
+                  fontFamily: "'Comic Neue', 'Comic Sans MS', cursive",
+                  textShadow: `
+                    0 2px 0 rgba(0,0,0,0.3),
+                    0 4px 0 rgba(0,0,0,0.25),
+                    0 6px 0 rgba(0,0,0,0.2),
+                    0 8px 0 rgba(0,0,0,0.15),
+                    0 10px 20px rgba(0,0,0,0.4),
+                    0 0 40px rgba(255,255,255,0.3)
+                  `
                 }}
               >
                 Who won this round?
@@ -1325,94 +1342,114 @@ export default function NertzScorekeeper() {
                 Round {currentRound - 1} Complete!
               </motion.h2>
 
-              <div 
-                className="rounded-3xl p-6 sm:p-8 md:p-10 mb-8 sm:mb-12 max-w-2xl w-full border-8"
-                style={{
-                  background: 'linear-gradient(to bottom, #ffffff 0%, #f0f0f0 100%)',
-                  borderColor: BICYCLE_ORANGE,
-                  boxShadow: `
-                    inset 0 4px 8px rgba(255,255,255,0.9),
-                    inset 0 -3px 6px rgba(0,0,0,0.1),
-                    0 3px 0 ${BICYCLE_ORANGE},
-                    0 6px 0 #d65a0f,
-                    0 9px 0 #b84a0a,
-                    0 12px 0 #9a3d08,
-                    0 15px 30px rgba(0,0,0,0.4)
-                  `
-                }}
-              >
-                <h3 
-                  className="text-2xl sm:text-3xl md:text-4xl font-bold mb-6 sm:mb-8"
-                  style={{ 
-                    color: '#666',
-                    fontFamily: "'Comic Neue', 'Comic Sans MS', cursive"
-                  }}
-                >
-                  Current Standings
-                </h3>
+              {/* Modular Plaque System */}
+              <div className="relative max-w-2xl w-full mb-8 sm:mb-12">
+                {/* Top Plaque with "Current Standings" Banner */}
+                <img 
+                  src={plaqueTop} 
+                  alt="Current Standings" 
+                  className="w-full"
+                  style={{ display: 'block', marginBottom: '-2px' }}
+                />
                 
-                <div className="space-y-4">
+                {/* Middle Section - One per team */}
+                <div className="relative" style={{ marginTop: '-2px', marginBottom: '-2px' }}>
                   {[...teams].sort((a, b) => b.score - a.score).map((team, i) => (
-                    <motion.div
-                      key={team.name}
-                      initial={{ x: -50, opacity: 0 }}
-                      animate={{ x: 0, opacity: 1 }}
-                      transition={{ delay: i * 0.1 }}
-                      className="flex items-center justify-between p-4 rounded-2xl border-6"
-                      style={{ 
-                        backgroundColor: team.color,
-                        borderColor: team.color,
-                        background: `linear-gradient(to bottom, ${team.color} 0%, ${team.color}dd 100%)`,
-                        boxShadow: `
-                          inset 0 2px 4px rgba(255,255,255,0.3),
-                          inset 0 -2px 3px rgba(0,0,0,0.2),
-                          0 2px 0 rgba(0,0,0,0.3),
-                          0 4px 0 rgba(0,0,0,0.25),
-                          0 6px 0 rgba(0,0,0,0.2),
-                          0 8px 15px rgba(0,0,0,0.4)
-                        `
-                      }}
-                    >
-                      <div className="flex items-center gap-4">
-                        <div 
-                          className="text-3xl sm:text-4xl font-black text-white"
-                          style={{ fontFamily: "'Comic Neue', 'Comic Sans MS', cursive" }}
-                        >
-                          #{i + 1}
-                        </div>
-                        <div 
-                          className="text-xl sm:text-2xl font-bold text-white"
-                          style={{ fontFamily: "'Comic Neue', 'Comic Sans MS', cursive" }}
-                        >
-                          {team.name}
-                        </div>
-                      </div>
-                      <div 
-                        className="text-4xl sm:text-5xl font-black text-white"
-                        style={{ fontFamily: "'Comic Neue', 'Comic Sans MS', cursive" }}
+                    <div key={team.name} className="relative" style={{ height: '100px' }}>
+                      {/* Background Middle Plaque */}
+                      <img 
+                        src={plaqueMiddle} 
+                        alt="Plaque Middle" 
+                        className="w-full h-full"
+                        style={{ display: 'block', objectFit: 'fill' }}
+                      />
+                      
+                      {/* Team Content Overlay */}
+                      <motion.div
+                        initial={{ x: -50, opacity: 0 }}
+                        animate={{ x: 0, opacity: 1 }}
+                        transition={{ delay: i * 0.1 }}
+                        className="absolute inset-0 flex items-center justify-between px-8 sm:px-12 md:px-16"
                       >
-                        {team.score}
-                      </div>
-                    </motion.div>
+                        <div className="flex items-center gap-3 sm:gap-4">
+                          <span 
+                            className="text-2xl sm:text-3xl md:text-4xl font-black"
+                            style={{ 
+                              color: '#666',
+                              fontFamily: "'Comic Neue', 'Comic Sans MS', cursive"
+                            }}
+                          >
+                            #{i + 1}
+                          </span>
+                          <img 
+                            src={team.teamImage} 
+                            alt={team.name}
+                            className="h-12 sm:h-14 md:h-16 w-auto"
+                          />
+                        </div>
+                        <span 
+                          className="text-2xl sm:text-3xl md:text-4xl font-black"
+                          style={{ 
+                            color: team.color,
+                            fontFamily: "'Comic Neue', 'Comic Sans MS', cursive",
+                            textShadow: '2px 2px 4px rgba(0,0,0,0.3)'
+                          }}
+                        >
+                          {team.score}
+                        </span>
+                      </motion.div>
+                    </div>
                   ))}
                 </div>
+                
+                {/* Bottom Plaque with Continue Button */}
+                <div className="relative" style={{ marginTop: '-2px' }}>
+                  <img 
+                    src={plaqueBottom} 
+                    alt="Plaque Bottom" 
+                    className="w-full"
+                    style={{ display: 'block' }}
+                  />
+                  
+                  {/* Content Overlay for Bottom Section */}
+                  <div className="absolute inset-0 flex flex-col items-center justify-center">
+                    {/* Crest Separator */}
+                    <img 
+                      src={crest} 
+                      alt="Crest" 
+                      className="w-full max-w-sm mb-4"
+                      style={{ filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.3))' }}
+                    />
+                    
+                    {/* Continue Button */}
+                    <motion.button
+                      onClick={() => {
+                        playButtonClick();
+                        startNextRound();
+                      }}
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
+                      className="bg-transparent p-0 border-0 outline-none focus:outline-none"
+                      style={{ 
+                        background: 'transparent', 
+                        border: 'none', 
+                        outline: 'none', 
+                        padding: '0 !important',
+                        filter: 'drop-shadow(0 8px 16px rgba(0,0,0,0.4))'
+                      }}
+                      initial={{ y: 20, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      transition={{ delay: 0.5, duration: 0.5 }}
+                    >
+                      <img 
+                        src={continueButton} 
+                        alt="Continue"
+                        className="h-16 sm:h-20 md:h-24 w-auto object-contain"
+                      />
+                    </motion.button>
+                  </div>
+                </div>
               </div>
-
-              <motion.button
-                onClick={() => {
-                  playButtonClick();
-                  startNextRound();
-                }}
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-                className="h-20 sm:h-24 md:h-28 lg:h-36 bg-transparent p-0 border-0 outline-none focus:outline-none"
-                style={{ background: 'transparent', border: 'none', outline: 'none', padding: '0 !important', filter: 'drop-shadow(0 8px 16px rgba(0,0,0,0.4))' }}
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.5, duration: 0.5 }}
-              >
-                <img src={continueButton} alt="Continue" className="h-full object-contain" />
-              </motion.button>
             </motion.div>
           )}
 
@@ -1422,77 +1459,144 @@ export default function NertzScorekeeper() {
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0 }}
-              className="text-center"
+              className="min-h-screen flex flex-col items-center justify-center text-center px-4"
             >
-              <h1 
-                className="text-5xl sm:text-6xl font-black mb-8"
-                style={{ 
-                  color: BICYCLE_ORANGE,
-                  textShadow: '4px 4px 0px rgba(0,0,0,0.1)',
-                  fontFamily: "'Comic Neue', 'Comic Sans MS', cursive"
-                }}
-              >
-                GAME OVER!
-              </h1>
+              <motion.img
+                src={gameOverImage}
+                alt="Game Over"
+                className="h-32 sm:h-40 md:h-48 w-auto object-contain mb-8"
+                style={{ filter: 'drop-shadow(0 8px 16px rgba(0,0,0,0.3))' }}
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ duration: 0.6, type: 'spring', bounce: 0.4 }}
+              />
 
-              <div className="space-y-4 mb-8">
-                {sortedTeams.map((team, i) => (
-                  <motion.div
-                    key={team.name}
-                    initial={{ x: -100, opacity: 0 }}
-                    animate={{ x: 0, opacity: 1 }}
-                    transition={{ delay: i * 0.1 }}
-                    className="bg-white rounded-3xl p-6 shadow-2xl flex items-center justify-between"
-                  >
-                    <div className="flex items-center gap-4">
-                      <div 
-                        className="text-4xl font-black w-16"
+              {/* Modular Leaderboard Plaque System for Final Results */}
+              <div className="relative max-w-2xl w-full mb-8 sm:mb-12">
+                {/* Top Leaderboard Plaque */}
+                <img 
+                  src={leaderboardPlaqueTop} 
+                  alt="Leaderboard Top" 
+                  className="w-full"
+                  style={{ display: 'block', marginBottom: '-2px' }}
+                />
+                
+                {/* Middle Section - One per team */}
+                <div className="relative" style={{ marginTop: '-2px', marginBottom: '-2px' }}>
+                  {sortedTeams.map((team, i) => (
+                    <div key={team.name} className="relative" style={{ height: '100px' }}>
+                      {/* Background Middle Leaderboard Plaque */}
+                      <img 
+                        src={leaderboardPlaqueMiddle} 
+                        alt="Leaderboard Middle" 
+                        className="w-full h-full"
+                        style={{ display: 'block', objectFit: 'fill' }}
+                      />
+                      
+                      {/* Team Content Overlay with Color Background */}
+                      <motion.div
+                        initial={{ x: -50, opacity: 0 }}
+                        animate={{ x: 0, opacity: 1 }}
+                        transition={{ delay: i * 0.1 }}
+                        className="absolute inset-0 flex items-center justify-between px-6 sm:px-8 md:px-10 mx-6 sm:mx-8 md:mx-10 my-2 rounded-2xl"
                         style={{ 
-                          color: BICYCLE_ORANGE,
-                          fontFamily: "'Comic Neue', 'Comic Sans MS', cursive"
+                          backgroundColor: team.color,
+                          background: `linear-gradient(to bottom, ${team.color} 0%, ${team.color}dd 100%)`,
+                          boxShadow: `
+                            inset 0 2px 4px rgba(255,255,255,0.3),
+                            inset 0 -2px 3px rgba(0,0,0,0.2),
+                            0 2px 0 rgba(0,0,0,0.3),
+                            0 4px 0 rgba(0,0,0,0.25),
+                            0 6px 0 rgba(0,0,0,0.2),
+                            0 8px 15px rgba(0,0,0,0.4)
+                          `
                         }}
                       >
-                        {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}`}
-                      </div>
-                      <div 
-                        className="w-16 h-20 rounded-xl shadow-lg"
-                        style={{ backgroundColor: team.color }}
-                      />
-                      <div 
-                        className="text-2xl font-bold"
-                        style={{ fontFamily: "'Comic Neue', 'Comic Sans MS', cursive" }}
-                      >
-                        {team.name}
-                      </div>
+                        <div className="flex items-center gap-3 sm:gap-4">
+                          <span 
+                            className="text-3xl sm:text-4xl md:text-5xl font-black"
+                            style={{ 
+                              color: '#fff',
+                              fontFamily: "'Comic Neue', 'Comic Sans MS', cursive",
+                              textShadow: '2px 2px 4px rgba(0,0,0,0.3)'
+                            }}
+                          >
+                            {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`}
+                          </span>
+                          <span 
+                            className="text-xl sm:text-2xl font-bold"
+                            style={{ 
+                              color: '#fff',
+                              fontFamily: "'Comic Neue', 'Comic Sans MS', cursive",
+                              textShadow: '2px 2px 4px rgba(0,0,0,0.3)'
+                            }}
+                          >
+                            {team.name}
+                          </span>
+                        </div>
+                        <span 
+                          className="text-3xl sm:text-4xl md:text-5xl font-black"
+                          style={{ 
+                            color: '#fff',
+                            fontFamily: "'Comic Neue', 'Comic Sans MS', cursive",
+                            textShadow: '2px 2px 4px rgba(0,0,0,0.3)'
+                          }}
+                        >
+                          {team.score}
+                        </span>
+                      </motion.div>
                     </div>
-                    <div 
-                      className="text-5xl font-black"
-                      style={{ 
-                        color: BICYCLE_ORANGE,
-                        fontFamily: "'Comic Neue', 'Comic Sans MS', cursive"
+                  ))}
+                </div>
+                
+                {/* Bottom Leaderboard Plaque with Exit Game Button */}
+                <div className="relative" style={{ marginTop: '-2px' }}>
+                  <img 
+                    src={leaderboardPlaqueBottom} 
+                    alt="Leaderboard Bottom" 
+                    className="w-full"
+                    style={{ display: 'block' }}
+                  />
+                  
+                  {/* Content Overlay for Bottom Section */}
+                  <div className="absolute inset-0 flex flex-col items-center justify-center">
+                    {/* Crest Separator */}
+                    <img 
+                      src={crest} 
+                      alt="Crest" 
+                      className="w-full max-w-sm mb-4"
+                      style={{ filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.3))' }}
+                    />
+                    
+                    {/* Exit Game Button */}
+                    <motion.button
+                      onClick={() => {
+                        playButtonClick();
+                        resetGame();
                       }}
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
+                      className="bg-transparent p-0 border-0 outline-none focus:outline-none"
+                      style={{ 
+                        background: 'transparent', 
+                        border: 'none', 
+                        outline: 'none', 
+                        padding: '0 !important',
+                        filter: 'drop-shadow(0 8px 16px rgba(0,0,0,0.4))'
+                      }}
+                      initial={{ y: 20, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      transition={{ delay: 0.5, duration: 0.5 }}
                     >
-                      {team.score}
-                    </div>
-                  </motion.div>
-                ))}
+                      <img 
+                        src={exitGameButton} 
+                        alt="Exit Game"
+                        className="h-16 sm:h-20 md:h-24 w-auto object-contain"
+                      />
+                    </motion.button>
+                  </div>
+                </div>
               </div>
-
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => {
-                  playButtonClick();
-                  resetGame();
-                }}
-                className="px-12 py-4 rounded-full text-2xl font-black text-white shadow-2xl"
-                style={{ 
-                  background: `linear-gradient(135deg, ${BICYCLE_ORANGE} 0%, #d65a0f 100%)`,
-                  fontFamily: "'Comic Neue', 'Comic Sans MS', cursive"
-                }}
-              >
-                HOME
-              </motion.button>
             </motion.div>
           )}
         </AnimatePresence>
