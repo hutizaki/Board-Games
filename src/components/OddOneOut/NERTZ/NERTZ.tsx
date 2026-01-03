@@ -58,7 +58,7 @@ import orange12 from '../../../assets/Nertz/12_Pack/orange.png';
 import magenta12 from '../../../assets/Nertz/12_Pack/magenta.png';
 import sapphireBlue12 from '../../../assets/Nertz/12_Pack/sapphire_blue.png';
 
-type GameState = 'home' | 'teamSetup' | 'colorSelect' | 'readyToStart' | 'countdown' | 'game' | 'roundEnd' | 'results';
+type GameState = 'home' | 'teamSetup' | 'colorSelect' | 'readyToStart' | 'countdown' | 'game' | 'roundEnd' | 'roundStandings' | 'results';
 type DeckType = '8 pack' | '12 pack';
 
 interface Team {
@@ -311,12 +311,22 @@ export default function NertzScorekeeper() {
         setGameState('results');
       } else {
         setCurrentRound(currentRound + 1);
-        startRound();
-        setGameState('game');
+        setGameState('roundStandings');
       }
     } else {
       setCurrentInputTeam(nextTeam);
     }
+  };
+
+  const startNextRound = () => {
+    startRound();
+    setCountdownNumber(3);
+    setGameState('countdown');
+    
+    // Play countdown audio
+    const audio = new Audio(countdownAudio);
+    audio.volume = volume / 100;
+    audio.play().catch(err => console.log('Countdown audio play prevented:', err));
   };
 
   const resetGame = () => {
@@ -1016,6 +1026,84 @@ export default function NertzScorekeeper() {
                 }}
               >
                 NEXT
+              </motion.button>
+            </motion.div>
+          )}
+
+          {gameState === 'roundStandings' && (
+            <motion.div
+              key="roundStandings"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0 }}
+              className="min-h-screen flex flex-col items-center justify-center text-center px-4"
+            >
+              <motion.h2 
+                className="nertz-heading text-4xl sm:text-5xl md:text-6xl lg:text-7xl mb-8 sm:mb-12"
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ duration: 0.6, type: 'spring', bounce: 0.4 }}
+              >
+                Round {currentRound - 1} Complete!
+              </motion.h2>
+
+              <div className="bg-white rounded-3xl shadow-2xl p-6 sm:p-8 md:p-10 mb-8 sm:mb-12 max-w-2xl w-full">
+                <h3 
+                  className="text-2xl sm:text-3xl md:text-4xl font-bold mb-6 sm:mb-8"
+                  style={{ 
+                    color: '#666',
+                    fontFamily: 'Comic Sans MS, cursive'
+                  }}
+                >
+                  Current Standings
+                </h3>
+                
+                <div className="space-y-4">
+                  {[...teams].sort((a, b) => b.score - a.score).map((team, i) => (
+                    <motion.div
+                      key={team.name}
+                      initial={{ x: -50, opacity: 0 }}
+                      animate={{ x: 0, opacity: 1 }}
+                      transition={{ delay: i * 0.1 }}
+                      className="flex items-center justify-between p-4 rounded-2xl shadow-lg"
+                      style={{ backgroundColor: team.color }}
+                    >
+                      <div className="flex items-center gap-4">
+                        <div 
+                          className="text-3xl sm:text-4xl font-black text-white"
+                          style={{ fontFamily: 'Comic Sans MS, cursive' }}
+                        >
+                          #{i + 1}
+                        </div>
+                        <div 
+                          className="text-xl sm:text-2xl font-bold text-white"
+                          style={{ fontFamily: 'Comic Sans MS, cursive' }}
+                        >
+                          {team.name}
+                        </div>
+                      </div>
+                      <div 
+                        className="text-4xl sm:text-5xl font-black text-white"
+                        style={{ fontFamily: 'Comic Sans MS, cursive' }}
+                      >
+                        {team.score}
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+
+              <motion.button
+                onClick={startNextRound}
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                className="h-20 sm:h-24 md:h-28 lg:h-36 bg-transparent p-0 border-0 outline-none focus:outline-none"
+                style={{ background: 'transparent', border: 'none', outline: 'none', padding: '0 !important', filter: 'drop-shadow(0 8px 16px rgba(0,0,0,0.4))' }}
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.5, duration: 0.5 }}
+              >
+                <img src={startGameButton} alt="Start Next Round" className="h-full object-contain" />
               </motion.button>
             </motion.div>
           )}
