@@ -340,7 +340,7 @@ export default function NertzScorekeeper() {
 
   return (
     <div 
-      className="nertz-app min-h-screen flex flex-col relative"
+      className="min-h-screen flex flex-col relative"
       style={{
         backgroundImage: `url(${nertzBackground})`,
         backgroundSize: 'cover',
