@@ -69,6 +69,11 @@
         -webkit-touch-callout: none;
         -webkit-user-select: none;
         user-select: none;
+        /* Fixed height to prevent scrolling */
+        height: 100%;
+        width: 100%;
+        overflow: hidden;
+        position: fixed;
       }
       
       /* Allow text selection for inputs */
@@ -81,6 +86,16 @@
       #root {
         transform: translateZ(0);
         -webkit-transform: translateZ(0);
+        /* Fill the viewport properly */
+        height: 100vh;
+        height: 100dvh; /* Dynamic viewport height for mobile browsers */
+        width: 100vw;
+        overflow: hidden;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
       }
       
       /* Remove 300ms click delay on iOS */

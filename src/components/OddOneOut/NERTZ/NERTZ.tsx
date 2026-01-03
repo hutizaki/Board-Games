@@ -483,13 +483,21 @@ export default function NertzScorekeeper() {
 
   return (
     <div 
-      className="min-h-screen flex flex-col relative"
+      className="flex flex-col relative"
       style={{
         backgroundImage: `url(${nertzBackground})`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundRepeat: 'no-repeat',
-        backgroundAttachment: 'fixed'
+        backgroundAttachment: 'fixed',
+        height: '100dvh',
+        width: '100vw',
+        overflow: 'hidden',
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0
       }}
     >
       {/* Hidden images to force browser caching */}
@@ -499,7 +507,7 @@ export default function NertzScorekeeper() {
         ))}
       </div>
       
-      <div className="w-full flex-1 flex flex-col">
+      <div className="w-full h-full flex flex-col overflow-hidden">
         <AnimatePresence mode="wait">
           {gameState === 'home' && (
             <motion.div
@@ -507,7 +515,7 @@ export default function NertzScorekeeper() {
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
-              className="flex-1 flex flex-col"
+              className="h-full flex flex-col overflow-y-auto overflow-x-hidden"
             >
               {/* Top header with back button and logo */}
               <div className="px-4 pt-4 mb-6">
@@ -728,7 +736,7 @@ export default function NertzScorekeeper() {
               key="countdown"
               initial={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.5 }}
-              className="min-h-screen flex items-center justify-center"
+              className="h-full flex items-center justify-center overflow-hidden"
             >
               <AnimatePresence mode="wait">
                 {countdownNumber > 0 ? (
@@ -759,7 +767,7 @@ export default function NertzScorekeeper() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="min-h-screen flex items-center justify-center"
+              className="h-full flex items-center justify-center overflow-hidden"
             >
               <motion.button
                 onClick={() => {
@@ -804,7 +812,7 @@ export default function NertzScorekeeper() {
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0 }}
-              className="min-h-screen flex flex-col items-center justify-center text-center px-4"
+              className="h-full flex flex-col items-center justify-center text-center px-4 overflow-hidden"
             >
               <h2 
                 className="text-7xl sm:text-8xl font-black mb-8"
@@ -854,7 +862,7 @@ export default function NertzScorekeeper() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
-              className="min-h-screen flex flex-col items-center justify-center text-center px-4 relative"
+              className="h-full flex flex-col items-center justify-center text-center px-4 relative overflow-y-auto overflow-x-hidden"
             >
               {/* Exit Button */}
               <motion.button
@@ -1069,7 +1077,7 @@ export default function NertzScorekeeper() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
-              className="min-h-screen flex flex-col items-center justify-center text-center px-4 relative"
+              className="h-full flex flex-col items-center justify-center text-center px-4 relative overflow-y-auto overflow-x-hidden"
             >
               {/* Exit Button */}
               <motion.button
@@ -1284,7 +1292,7 @@ export default function NertzScorekeeper() {
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0 }}
-              className="min-h-screen flex flex-col items-center justify-center text-center px-4 relative"
+              className="h-full flex flex-col items-center justify-center text-center px-4 relative overflow-y-auto overflow-x-hidden"
             >
               {/* Exit Button */}
               <motion.button
@@ -1459,7 +1467,7 @@ export default function NertzScorekeeper() {
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0 }}
-              className="min-h-screen flex flex-col items-center justify-center text-center px-4"
+              className="h-full flex flex-col items-center justify-center text-center px-4 overflow-y-auto overflow-x-hidden"
             >
               <motion.img
                 src={gameOverImage}
@@ -1500,7 +1508,6 @@ export default function NertzScorekeeper() {
                         transition={{ delay: i * 0.1 }}
                         className="absolute inset-0 flex items-center justify-between px-6 sm:px-8 md:px-10 mx-6 sm:mx-8 md:mx-10 my-2 rounded-2xl"
                         style={{ 
-                          backgroundColor: team.color,
                           background: `linear-gradient(to bottom, ${team.color} 0%, ${team.color}dd 100%)`,
                           boxShadow: `
                             inset 0 2px 4px rgba(255,255,255,0.3),
