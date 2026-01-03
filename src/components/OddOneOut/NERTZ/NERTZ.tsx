@@ -142,6 +142,11 @@ export default function NertzScorekeeper() {
   const [isMuted, setIsMuted] = useState(false);
   const gameMusicRef = useRef<HTMLAudioElement | null>(null);
 
+  // Exit button state
+  const [exitHoldProgress, setExitHoldProgress] = useState(0);
+  const exitHoldTimerRef = useRef<number | null>(null);
+  const exitHoldStartTimeRef = useRef<number | null>(null);
+
   // Preload number images aggressively
   useEffect(() => {
     const imagesToLoad = Object.values(NUMBER_IMAGES);
@@ -337,6 +342,48 @@ export default function NertzScorekeeper() {
   };
 
   const sortedTeams = [...teams].sort((a, b) => b.score - a.score);
+
+  // Exit button handlers
+  const handleExitMouseDown = () => {
+    exitHoldStartTimeRef.current = Date.now();
+    exitHoldTimerRef.current = window.setInterval(() => {
+      const elapsed = Date.now() - (exitHoldStartTimeRef.current || 0);
+      const progress = Math.min(elapsed / 2000, 1); // 2 seconds to fill
+      setExitHoldProgress(progress);
+      
+      if (progress >= 1) {
+        handleExitComplete();
+      }
+    }, 16); // ~60fps
+  };
+
+  const handleExitMouseUp = () => {
+    if (exitHoldTimerRef.current) {
+      clearInterval(exitHoldTimerRef.current);
+      exitHoldTimerRef.current = null;
+    }
+    exitHoldStartTimeRef.current = null;
+    setExitHoldProgress(0);
+  };
+
+  const handleExitComplete = () => {
+    if (exitHoldTimerRef.current) {
+      clearInterval(exitHoldTimerRef.current);
+      exitHoldTimerRef.current = null;
+    }
+    exitHoldStartTimeRef.current = null;
+    setExitHoldProgress(0);
+    resetGame();
+  };
+
+  // Cleanup exit timer on unmount
+  useEffect(() => {
+    return () => {
+      if (exitHoldTimerRef.current) {
+        clearInterval(exitHoldTimerRef.current);
+      }
+    };
+  }, []);
 
   return (
     <div 
@@ -1036,8 +1083,84 @@ export default function NertzScorekeeper() {
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0 }}
-              className="min-h-screen flex flex-col items-center justify-center text-center px-4"
+              className="min-h-screen flex flex-col items-center justify-center text-center px-4 relative"
             >
+              {/* Exit Button - Top Left */}
+              <motion.button
+                onMouseDown={handleExitMouseDown}
+                onMouseUp={handleExitMouseUp}
+                onMouseLeave={handleExitMouseUp}
+                onTouchStart={handleExitMouseDown}
+                onTouchEnd={handleExitMouseUp}
+                onTouchCancel={handleExitMouseUp}
+                className="absolute top-4 left-4 sm:top-6 sm:left-6 z-10"
+                style={{
+                  width: '80px',
+                  height: '80px',
+                  background: 'transparent',
+                  border: 'none',
+                  outline: 'none',
+                  padding: 0,
+                  cursor: 'pointer',
+                  overflow: 'hidden',
+                  borderRadius: '50%'
+                }}
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.3 }}
+              >
+                <svg width="80" height="80" viewBox="0 0 80 80">
+                  {/* Background circle */}
+                  <circle
+                    cx="40"
+                    cy="40"
+                    r="38"
+                    fill="rgba(255, 255, 255, 0.9)"
+                    stroke="rgba(255, 255, 255, 0.5)"
+                    strokeWidth="2"
+                  />
+                  
+                  {/* Progress pie slice - uses path for true pie shape */}
+                  {exitHoldProgress > 0 && (
+                    <path
+                      d={`M 40 40 L 40 2 A 38 38 0 ${exitHoldProgress > 0.5 ? 1 : 0} 1 ${
+                        40 + 38 * Math.sin(exitHoldProgress * 2 * Math.PI)
+                      } ${
+                        40 - 38 * Math.cos(exitHoldProgress * 2 * Math.PI)
+                      } Z`}
+                      fill="rgba(241, 120, 33, 0.8)"
+                      style={{
+                        transition: exitHoldProgress === 0 ? 'opacity 0.2s ease-out' : 'none'
+                      }}
+                    />
+                  )}
+                  
+                  {/* X icon - only show when not holding */}
+                  {exitHoldProgress === 0 && (
+                    <g transform="translate(40, 40)">
+                      <line
+                        x1="-14"
+                        y1="-14"
+                        x2="14"
+                        y2="14"
+                        stroke="#333333"
+                        strokeWidth="4"
+                        strokeLinecap="round"
+                      />
+                      <line
+                        x1="-14"
+                        y1="14"
+                        x2="14"
+                        y2="-14"
+                        stroke="#333333"
+                        strokeWidth="4"
+                        strokeLinecap="round"
+                      />
+                    </g>
+                  )}
+                </svg>
+              </motion.button>
+
               <motion.h2 
                 className="nertz-heading text-4xl sm:text-5xl md:text-6xl lg:text-7xl mb-8 sm:mb-12"
                 initial={{ scale: 0.8, opacity: 0 }}
@@ -1180,7 +1303,7 @@ export default function NertzScorekeeper() {
                   fontFamily: "'Comic Neue', 'Comic Sans MS', cursive"
                 }}
               >
-                NEW GAME
+                HOME
               </motion.button>
             </motion.div>
           )}
