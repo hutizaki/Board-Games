@@ -47,13 +47,8 @@ h1 {
 button {
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
-  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3)) drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
   /* Improve button responsiveness */
   touch-action: manipulation;
-  /* Hardware acceleration */
-  transform: translateZ(0);
-  -webkit-transform: translateZ(0);
-  will-change: transform;
 }
 
 img {
@@ -62,9 +57,11 @@ img {
   -moz-user-drag: none;
   -o-user-drag: none;
   pointer-events: none;
-  /* Hardware acceleration for images */
-  transform: translateZ(0);
-  -webkit-transform: translateZ(0);
+  /* Improve image rendering quality on mobile */
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+  -webkit-backface-visibility: visible;
+  backface-visibility: visible;
 }
 
 /* Improve input responsiveness */
@@ -112,14 +109,10 @@ input[type="range"]::-moz-range-thumb:hover {
   transform: scale(1.1);
 }
 
-/* Optimize animations for 60fps */
+/* Optimize animations for 60fps - but preserve image quality */
 @media (prefers-reduced-motion: no-preference) {
   * {
-    /* Use GPU acceleration for smoother animations */
-    -webkit-backface-visibility: hidden;
-    backface-visibility: hidden;
-    -webkit-perspective: 1000;
-    perspective: 1000;
+    /* Removed backface-visibility: hidden to prevent PNG transparency artifacts */
   }
 }
 

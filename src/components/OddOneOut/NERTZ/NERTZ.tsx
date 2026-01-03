@@ -514,7 +514,7 @@ export default function NertzScorekeeper() {
                     src={NUMBER_IMAGES[numTeams]} 
                     alt={`${numTeams}`}
                     className="h-32 sm:h-40 md:h-48 lg:h-56 object-contain"
-                    style={{ filter: 'drop-shadow(8px 8px 0px rgba(0,0,0,0.15)) drop-shadow(4px 4px 0px rgba(0,0,0,0.1))' }}
+                    style={{ filter: 'drop-shadow(6px 6px 0px rgba(0,0,0,0.2))' }}
                   />
                 </motion.div>
 
@@ -762,13 +762,7 @@ export default function NertzScorekeeper() {
                         border: isUsed ? '3px solid rgba(0,0,0,0.3)' : 'none',
                         padding: 0,
                         borderRadius: '10px',
-                        boxShadow: '-6px 6px 20px rgba(0, 0, 0, 0.6), -3px 3px 10px rgba(0, 0, 0, 0.5), -1px 1px 5px rgba(0, 0, 0, 0.4)',
-                        willChange: 'transform, opacity',
-                        transform: 'translate3d(0, 0, 0)',
-                        backfaceVisibility: 'hidden',
-                        WebkitBackfaceVisibility: 'hidden',
-                        perspective: 1000,
-                        WebkitPerspective: 1000
+                        boxShadow: '-4px 4px 12px rgba(0, 0, 0, 0.5)'
                       }}
                     >
                       <img 
@@ -845,11 +839,7 @@ export default function NertzScorekeeper() {
                       ease: [0.34, 1.56, 0.64, 1]
                     }}
                     style={{ 
-                      filter: 'drop-shadow(0 8px 16px rgba(0,0,0,0.4))',
-                      willChange: 'transform, opacity',
-                      transform: 'translate3d(0, 0, 0)',
-                      backfaceVisibility: 'hidden',
-                      WebkitBackfaceVisibility: 'hidden'
+                      filter: 'drop-shadow(0 6px 12px rgba(0,0,0,0.4))'
                     }}
                   />
                 ) : null}

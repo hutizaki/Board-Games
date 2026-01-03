@@ -3,7 +3,7 @@
 /* Main Menu Headings (White text with dark shadows) */
 .nertz-heading {
   color: #ffffff; /* White text */
-  text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.4), 2px 2px 4px rgba(0, 0, 0, 0.3), 1px 1px 2px rgba(0, 0, 0, 0.2); /* Layered dark shadows */
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5); /* Simplified shadow for better mobile rendering */
   font-family: 'Comic Neue', 'Comic Sans MS', cursive;
   font-weight: 700; /* Bold font weight */
   letter-spacing: 0.02em;
@@ -12,7 +12,7 @@
 /* Team Setup Headings (Dark text with light/orange shadows) */
 .nertz-heading-dark {
   color: #2c3e50; /* Dark blue text */
-  text-shadow: 4px 4px 0px rgba(241, 120, 33, 0.3), 2px 2px 0px rgba(0, 0, 0, 0.1); /* Light/orange shadows */
+  text-shadow: 3px 3px 0px rgba(241, 120, 33, 0.3); /* Simplified shadow for better mobile rendering */
   font-family: 'Comic Neue', 'Comic Sans MS', cursive;
   font-weight: 700; /* Bold font weight */
   letter-spacing: 0.02em;
@@ -24,11 +24,11 @@
   border: none;
   outline: none;
   padding: 0 !important;
-  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3)) drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.3)); /* Single drop-shadow to prevent artifacts */
 }
 
 /* Card shadows for team selection */
 .nertz-card-shadow {
-  box-shadow: -6px 6px 20px rgba(0, 0, 0, 0.6), -3px 3px 10px rgba(0, 0, 0, 0.5), -1px 1px 5px rgba(0, 0, 0, 0.4);
+  box-shadow: -4px 4px 12px rgba(0, 0, 0, 0.5); /* Simplified shadow for better mobile rendering */
 }
 
