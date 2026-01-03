@@ -535,7 +535,7 @@ export default function NertzScorekeeper() {
                       {/* Header */}
                       <div className="bg-gradient-to-r from-slate-600 to-slate-700 p-6 sm:p-8 md:p-10">
                         <h2 className="text-4xl sm:text-5xl md:text-6xl font-black text-white text-center tracking-wide"
-                            style={{ fontFamily: 'Comic Sans MS, cursive', textShadow: '2px 2px 4px rgba(0,0,0,0.3)' }}>
+                            style={{ fontFamily: "'Comic Neue', 'Comic Sans MS', cursive", textShadow: '2px 2px 4px rgba(0,0,0,0.3)' }}>
                           SETTINGS
                         </h2>
                       </div>
@@ -545,7 +545,7 @@ export default function NertzScorekeeper() {
                         {/* Deck Type */}
                         <div className="mb-8">
                           <h3 className="text-2xl sm:text-3xl md:text-4xl font-black mb-4" 
-                              style={{ fontFamily: 'Comic Sans MS, cursive', color: '#2c3e50' }}>
+                              style={{ fontFamily: "'Comic Neue', 'Comic Sans MS', cursive", color: '#2c3e50' }}>
                             Deck Type
                           </h3>
                           <div className="flex gap-4 justify-center">
@@ -556,7 +556,7 @@ export default function NertzScorekeeper() {
                                   ? 'bg-gradient-to-r from-orange-400 to-red-400 text-white scale-105 shadow-lg'
                                   : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                               }`}
-                              style={{ fontFamily: 'Comic Sans MS, cursive' }}
+                              style={{ fontFamily: "'Comic Neue', 'Comic Sans MS', cursive" }}
                             >
                               8 PACK
                             </button>
@@ -567,7 +567,7 @@ export default function NertzScorekeeper() {
                                   ? 'bg-gradient-to-r from-orange-400 to-red-400 text-white scale-105 shadow-lg'
                                   : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                               }`}
-                              style={{ fontFamily: 'Comic Sans MS, cursive' }}
+                              style={{ fontFamily: "'Comic Neue', 'Comic Sans MS', cursive" }}
                             >
                               12 PACK
                             </button>
@@ -578,11 +578,11 @@ export default function NertzScorekeeper() {
                         <div className="mb-8">
                           <div className="flex items-center justify-between mb-4">
                             <h3 className="text-2xl sm:text-3xl md:text-4xl font-black" 
-                                style={{ fontFamily: 'Comic Sans MS, cursive', color: '#2c3e50' }}>
+                                style={{ fontFamily: "'Comic Neue', 'Comic Sans MS', cursive", color: '#2c3e50' }}>
                               Volume
                             </h3>
                             <span className="text-3xl sm:text-4xl md:text-5xl font-black"
-                                  style={{ fontFamily: 'Comic Sans MS, cursive', color: '#4a90e2' }}>
+                                  style={{ fontFamily: "'Comic Neue', 'Comic Sans MS', cursive", color: '#4a90e2' }}>
                               {volume}
                             </span>
                           </div>
@@ -613,7 +613,7 @@ export default function NertzScorekeeper() {
                                   ? 'bg-red-500 text-white shadow-lg'
                                   : 'bg-green-500 text-white shadow-lg'
                               }`}
-                              style={{ fontFamily: 'Comic Sans MS, cursive' }}
+                              style={{ fontFamily: "'Comic Neue', 'Comic Sans MS', cursive" }}
                             >
                               {isMuted ? '🔇 UNMUTE' : '🔊 MUTE'}
                             </motion.button>
@@ -630,7 +630,7 @@ export default function NertzScorekeeper() {
                           className="px-16 sm:px-20 md:px-24 py-4 sm:py-5 md:py-6 rounded-full font-black text-2xl sm:text-3xl md:text-4xl text-white shadow-xl"
                           style={{ 
                             background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)',
-                            fontFamily: 'Comic Sans MS, cursive'
+                            fontFamily: "'Comic Neue', 'Comic Sans MS', cursive"
                           }}
                         >
                           Back
@@ -886,7 +886,7 @@ export default function NertzScorekeeper() {
                 className="text-4xl font-bold mb-8"
                 style={{ 
                   color: '#333',
-                  fontFamily: 'Comic Sans MS, cursive'
+                  fontFamily: "'Comic Neue', 'Comic Sans MS', cursive"
                 }}
               >
                 Who won this round?
@@ -902,7 +902,7 @@ export default function NertzScorekeeper() {
                     className="p-8 rounded-3xl shadow-xl text-white text-2xl font-black"
                     style={{ 
                       backgroundColor: team.color,
-                      fontFamily: 'Comic Sans MS, cursive'
+                      fontFamily: "'Comic Neue', 'Comic Sans MS', cursive"
                     }}
                   >
                     {team.name}
@@ -929,13 +929,13 @@ export default function NertzScorekeeper() {
                 className="text-3xl font-bold mb-4"
                 style={{ 
                   color: '#333',
-                  fontFamily: 'Comic Sans MS, cursive'
+                  fontFamily: "'Comic Neue', 'Comic Sans MS', cursive"
                 }}
               >
                 {teams[currentInputTeam].name}
               </h2>
               
-              <p className="text-xl mb-6" style={{ fontFamily: 'Comic Sans MS, cursive' }}>
+              <p className="text-xl mb-6" style={{ fontFamily: "'Comic Neue', 'Comic Sans MS', cursive" }}>
                 Cards remaining in hand?
               </p>
 
@@ -946,13 +946,13 @@ export default function NertzScorekeeper() {
                 className="w-full max-w-xs px-6 py-4 text-4xl font-black text-center rounded-3xl shadow-xl mb-6 border-4"
                 style={{ 
                   borderColor: teams[currentInputTeam].color,
-                  fontFamily: 'Comic Sans MS, cursive'
+                  fontFamily: "'Comic Neue', 'Comic Sans MS', cursive"
                 }}
                 placeholder="0"
                 autoFocus
               />
 
-              <p className="text-lg mb-6" style={{ color: '#666', fontFamily: 'Comic Sans MS, cursive' }}>
+              <p className="text-lg mb-6" style={{ color: '#666', fontFamily: "'Comic Neue', 'Comic Sans MS', cursive" }}>
                 Each card = -2 points
               </p>
 
@@ -963,7 +963,7 @@ export default function NertzScorekeeper() {
                 className="px-12 py-4 rounded-full text-2xl font-black text-white shadow-2xl"
                 style={{ 
                   background: `linear-gradient(135deg, ${BICYCLE_ORANGE} 0%, #d65a0f 100%)`,
-                  fontFamily: 'Comic Sans MS, cursive'
+                  fontFamily: "'Comic Neue', 'Comic Sans MS', cursive"
                 }}
               >
                 NEXT
@@ -988,13 +988,13 @@ export default function NertzScorekeeper() {
                 className="text-3xl font-bold mb-4"
                 style={{ 
                   color: '#333',
-                  fontFamily: 'Comic Sans MS, cursive'
+                  fontFamily: "'Comic Neue', 'Comic Sans MS', cursive"
                 }}
               >
                 {teams[currentInputTeam].name}
               </h2>
               
-              <p className="text-xl mb-6" style={{ fontFamily: 'Comic Sans MS, cursive' }}>
+              <p className="text-xl mb-6" style={{ fontFamily: "'Comic Neue', 'Comic Sans MS', cursive" }}>
                 Cards in middle pile?
               </p>
 
@@ -1005,13 +1005,13 @@ export default function NertzScorekeeper() {
                 className="w-full max-w-xs px-6 py-4 text-4xl font-black text-center rounded-3xl shadow-xl mb-6 border-4"
                 style={{ 
                   borderColor: teams[currentInputTeam].color,
-                  fontFamily: 'Comic Sans MS, cursive'
+                  fontFamily: "'Comic Neue', 'Comic Sans MS', cursive"
                 }}
                 placeholder="0"
                 autoFocus
               />
 
-              <p className="text-lg mb-6" style={{ color: '#666', fontFamily: 'Comic Sans MS, cursive' }}>
+              <p className="text-lg mb-6" style={{ color: '#666', fontFamily: "'Comic Neue', 'Comic Sans MS', cursive" }}>
                 Each card = +1 point
               </p>
 
@@ -1022,7 +1022,7 @@ export default function NertzScorekeeper() {
                 className="px-12 py-4 rounded-full text-2xl font-black text-white shadow-2xl"
                 style={{ 
                   background: `linear-gradient(135deg, ${BICYCLE_ORANGE} 0%, #d65a0f 100%)`,
-                  fontFamily: 'Comic Sans MS, cursive'
+                  fontFamily: "'Comic Neue', 'Comic Sans MS', cursive"
                 }}
               >
                 NEXT
@@ -1052,7 +1052,7 @@ export default function NertzScorekeeper() {
                   className="text-2xl sm:text-3xl md:text-4xl font-bold mb-6 sm:mb-8"
                   style={{ 
                     color: '#666',
-                    fontFamily: 'Comic Sans MS, cursive'
+                    fontFamily: "'Comic Neue', 'Comic Sans MS', cursive"
                   }}
                 >
                   Current Standings
@@ -1071,20 +1071,20 @@ export default function NertzScorekeeper() {
                       <div className="flex items-center gap-4">
                         <div 
                           className="text-3xl sm:text-4xl font-black text-white"
-                          style={{ fontFamily: 'Comic Sans MS, cursive' }}
+                          style={{ fontFamily: "'Comic Neue', 'Comic Sans MS', cursive" }}
                         >
                           #{i + 1}
                         </div>
                         <div 
                           className="text-xl sm:text-2xl font-bold text-white"
-                          style={{ fontFamily: 'Comic Sans MS, cursive' }}
+                          style={{ fontFamily: "'Comic Neue', 'Comic Sans MS', cursive" }}
                         >
                           {team.name}
                         </div>
                       </div>
                       <div 
                         className="text-4xl sm:text-5xl font-black text-white"
-                        style={{ fontFamily: 'Comic Sans MS, cursive' }}
+                        style={{ fontFamily: "'Comic Neue', 'Comic Sans MS', cursive" }}
                       >
                         {team.score}
                       </div>
@@ -1121,7 +1121,7 @@ export default function NertzScorekeeper() {
                 style={{ 
                   color: BICYCLE_ORANGE,
                   textShadow: '4px 4px 0px rgba(0,0,0,0.1)',
-                  fontFamily: 'Comic Sans MS, cursive'
+                  fontFamily: "'Comic Neue', 'Comic Sans MS', cursive"
                 }}
               >
                 GAME OVER!
@@ -1141,7 +1141,7 @@ export default function NertzScorekeeper() {
                         className="text-4xl font-black w-16"
                         style={{ 
                           color: BICYCLE_ORANGE,
-                          fontFamily: 'Comic Sans MS, cursive'
+                          fontFamily: "'Comic Neue', 'Comic Sans MS', cursive"
                         }}
                       >
                         {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}`}
@@ -1152,7 +1152,7 @@ export default function NertzScorekeeper() {
                       />
                       <div 
                         className="text-2xl font-bold"
-                        style={{ fontFamily: 'Comic Sans MS, cursive' }}
+                        style={{ fontFamily: "'Comic Neue', 'Comic Sans MS', cursive" }}
                       >
                         {team.name}
                       </div>
@@ -1161,7 +1161,7 @@ export default function NertzScorekeeper() {
                       className="text-5xl font-black"
                       style={{ 
                         color: BICYCLE_ORANGE,
-                        fontFamily: 'Comic Sans MS, cursive'
+                        fontFamily: "'Comic Neue', 'Comic Sans MS', cursive"
                       }}
                     >
                       {team.score}
@@ -1177,7 +1177,7 @@ export default function NertzScorekeeper() {
                 className="px-12 py-4 rounded-full text-2xl font-black text-white shadow-2xl"
                 style={{ 
                   background: `linear-gradient(135deg, ${BICYCLE_ORANGE} 0%, #d65a0f 100%)`,
-                  fontFamily: 'Comic Sans MS, cursive'
+                  fontFamily: "'Comic Neue', 'Comic Sans MS', cursive"
                 }}
               >
                 NEW GAME
