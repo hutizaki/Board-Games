@@ -17,9 +17,11 @@ import startGameButton from '../../../assets/Nertz/startGame.png';
 
 // Import audio
 import countdownAudio from '../../../assets/Nertz/countdown.opus';
-import gameMusic from '../../../assets/Nertz/NERTZ.opus';
+import nertzSoundEffect from '../../../assets/Nertz/NERTZ.opus';
+import gameMusic from '../../../assets/Nertz/music.opus';
 
 // Import number images
+import number1 from '../../../assets/Nertz/numbers/1.png';
 import number2 from '../../../assets/Nertz/numbers/2.png';
 import number3 from '../../../assets/Nertz/numbers/3.png';
 import number4 from '../../../assets/Nertz/numbers/4.png';
@@ -105,6 +107,7 @@ const BICYCLE_ORANGE = '#f17821';
 
 // Number images mapping
 const NUMBER_IMAGES: Record<number, string> = {
+  1: number1,
   2: number2,
   3: number3,
   4: number4,
@@ -806,7 +809,15 @@ export default function NertzScorekeeper() {
               className="min-h-screen flex items-center justify-center"
             >
               <motion.button
-                onClick={() => setGameState('roundEnd')}
+                onClick={() => {
+                  // Play NERTZ sound effect
+                  const nertzSound = new Audio(nertzSoundEffect);
+                  nertzSound.volume = volume / 100;
+                  nertzSound.play().catch(err => console.log('NERTZ sound effect play prevented:', err));
+                  
+                  // End the round
+                  setGameState('roundEnd');
+                }}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 className="bg-transparent p-0 border-0 outline-none focus:outline-none"
@@ -853,66 +864,13 @@ export default function NertzScorekeeper() {
             </motion.div>
           )}
 
-          {gameState === 'game' && (
-            <motion.div
-              key="game"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="text-center"
-            >
-              <div className="bg-white rounded-3xl shadow-2xl p-8 mb-8">
-                <h3 
-                  className="text-2xl font-bold mb-4"
-                  style={{ 
-                    color: '#666',
-                    fontFamily: 'Comic Sans MS, cursive'
-                  }}
-                >
-                  Round {currentRound}
-                </h3>
-                
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-6">
-                  {teams.map((team, i) => (
-                    <div
-                      key={i}
-                      className="p-4 rounded-2xl shadow-lg"
-                      style={{ backgroundColor: team.color }}
-                    >
-                      <div className="text-white font-bold text-lg mb-1" style={{ fontFamily: 'Comic Sans MS, cursive' }}>
-                        {team.name}
-                      </div>
-                      <div className="text-white text-3xl font-black" style={{ fontFamily: 'Comic Sans MS, cursive' }}>
-                        {team.score}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setGameState('roundEnd')}
-                  className="w-full py-8 rounded-3xl text-6xl font-black text-white shadow-2xl"
-                  style={{ 
-                    background: `linear-gradient(135deg, ${BICYCLE_ORANGE} 0%, #d65a0f 100%)`,
-                    fontFamily: 'Comic Sans MS, cursive',
-                    textShadow: '4px 4px 8px rgba(0,0,0,0.3)'
-                  }}
-                >
-                  NERTZ!
-                </motion.button>
-              </div>
-            </motion.div>
-          )}
-
           {gameState === 'roundEnd' && roundWinner === null && (
             <motion.div
               key="roundEndWinner"
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0 }}
-              className="text-center"
+              className="min-h-screen flex flex-col items-center justify-center text-center"
             >
               <h2 
                 className="text-4xl font-bold mb-8"
@@ -950,7 +908,7 @@ export default function NertzScorekeeper() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
-              className="text-center"
+              className="min-h-screen flex flex-col items-center justify-center text-center"
             >
               <div 
                 className="w-24 h-32 mx-auto mb-6 rounded-2xl shadow-2xl"
@@ -1009,7 +967,7 @@ export default function NertzScorekeeper() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
-              className="text-center"
+              className="min-h-screen flex flex-col items-center justify-center text-center"
             >
               <div 
                 className="w-24 h-32 mx-auto mb-6 rounded-2xl shadow-2xl"
