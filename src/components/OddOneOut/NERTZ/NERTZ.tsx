@@ -11,9 +11,10 @@ import nertzLogo from '../../../assets/Nertz/nertzLogo.png';
 
 // Import UI icons
 import arrowIcon from '../../../assets/Nertz/arrow.png';
-import gearIcon from '../../../assets/Nertz/gear.png';
-import triangleIcon from '../../../assets/Nertz/triangle.png';
 import startGameButton from '../../../assets/Nertz/startGame.png';
+import deckBanner from '../../../assets/Nertz/deckBanner.png';
+import aceBlack from '../../../assets/Nertz/aceBlack.png';
+import aceRed from '../../../assets/Nertz/aceRed.png';
 
 // Import audio
 import countdownAudio from '../../../assets/Nertz/countdown.opus';
@@ -21,6 +22,7 @@ import nertzSoundEffect from '../../../assets/Nertz/NERTZ.opus';
 import gameMusic from '../../../assets/Nertz/music.opus';
 
 // Import number images
+import number0 from '../../../assets/Nertz/numbers/0.png';
 import number1 from '../../../assets/Nertz/numbers/1.png';
 import number2 from '../../../assets/Nertz/numbers/2.png';
 import number3 from '../../../assets/Nertz/numbers/3.png';
@@ -107,6 +109,7 @@ const BICYCLE_ORANGE = '#f17821';
 
 // Number images mapping
 const NUMBER_IMAGES: Record<number, string> = {
+  0: number0,
   1: number1,
   2: number2,
   3: number3,
@@ -125,10 +128,8 @@ export default function NertzScorekeeper() {
   const navigate = useNavigate();
   const [gameState, setGameState] = useState<GameState>('home');
   const [deckType, setDeckType] = useState<DeckType>('8 pack');
-  const [showSettings, setShowSettings] = useState(false);
-  const [numTeams, setNumTeams] = useState(2);
   const [teams, setTeams] = useState<Team[]>([]);
-  const [currentTeamSetup, setCurrentTeamSetup] = useState(0);
+  const [selectedColors, setSelectedColors] = useState<string[]>([]); // Track selected color IDs
   const [currentRound, setCurrentRound] = useState(1);
   const [roundWinner, setRoundWinner] = useState<number | null>(null);
   const [currentInputTeam, setCurrentInputTeam] = useState(0);
@@ -137,9 +138,7 @@ export default function NertzScorekeeper() {
   const [countdownNumber, setCountdownNumber] = useState(3);
   
   // Music state
-  const [volume, setVolume] = useState(70);
-  const [previousVolume, setPreviousVolume] = useState(70);
-  const [isMuted, setIsMuted] = useState(false);
+  const [volume] = useState(70); // Fixed volume, no UI controls
   const gameMusicRef = useRef<HTMLAudioElement | null>(null);
 
   // Exit button state
@@ -196,54 +195,35 @@ export default function NertzScorekeeper() {
     }
   }, [volume]);
 
-  const handleVolumeChange = (newVolume: number) => {
-    setVolume(newVolume);
-    if (newVolume > 0 && isMuted) {
-      setIsMuted(false);
-    }
-  };
+  const availableColors = DECK_COLORS[deckType];
+  const maxTeams = deckType === '8 pack' ? 8 : 12;
 
-  const toggleMute = () => {
-    if (isMuted) {
-      // Unmute: restore previous volume
-      setVolume(previousVolume);
-      setIsMuted(false);
+  const toggleColorSelection = (cardColor: CardColor) => {
+    if (selectedColors.includes(cardColor.id)) {
+      // Deselect color
+      setSelectedColors(selectedColors.filter(id => id !== cardColor.id));
     } else {
-      // Mute: save current volume and set to 0
-      setPreviousVolume(volume);
-      setVolume(0);
-      setIsMuted(true);
+      // Select color (only if under max limit)
+      if (selectedColors.length < maxTeams) {
+        setSelectedColors([...selectedColors, cardColor.id]);
+      }
     }
   };
 
-  const usedColors = teams.map(t => t.color);
-  const availableColors = DECK_COLORS[deckType].filter(c => !usedColors.includes(c.color));
-
-  const initializeTeams = () => {
-    setTeams([]);
-    setCurrentTeamSetup(0);
-    setGameState('teamSetup');
-  };
-
-  const selectColor = (cardColor: CardColor) => {
-    const newTeam: Team = {
-      name: `Team ${currentTeamSetup + 1}`,
-      color: cardColor.color,
-      colorImage: cardColor.image,
-      score: 0,
-      cardsInHand: 0,
-      cardsInPile: 0
-    };
-    setTeams([...teams, newTeam]);
-    
-    if (currentTeamSetup + 1 < numTeams) {
-      setCurrentTeamSetup(currentTeamSetup + 1);
-    } else {
-      setGameState('readyToStart');
-    }
-  };
-
-  const handleStartGame = () => {
+  const startGameWithSelectedColors = () => {
+    // Create teams from selected colors
+    const newTeams: Team[] = selectedColors.map((colorId) => {
+      const cardColor = availableColors.find(c => c.id === colorId)!;
+      return {
+        name: cardColor.id.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
+        color: cardColor.color,
+        colorImage: cardColor.image,
+        score: 0,
+        cardsInHand: 0,
+        cardsInPile: 0
+      };
+    });
+    setTeams(newTeams);
     setCountdownNumber(3);
     setGameState('countdown');
     
@@ -336,8 +316,8 @@ export default function NertzScorekeeper() {
 
   const resetGame = () => {
     setGameState('home');
-    setNumTeams(2);
     setTeams([]);
+    setSelectedColors([]);
     setCurrentRound(1);
   };
 
@@ -374,6 +354,23 @@ export default function NertzScorekeeper() {
     exitHoldStartTimeRef.current = null;
     setExitHoldProgress(0);
     resetGame();
+  };
+
+  // Numpad handlers
+  const handleNumpadPress = (value: string) => {
+    if (value === 'backspace') {
+      setTempInput(tempInput.slice(0, -1));
+    } else if (value === 'enter') {
+      // Submit based on current phase
+      if (inputPhase === 'hand') {
+        submitHandCards();
+      } else {
+        submitPileCards();
+      }
+    } else {
+      // Append number
+      setTempInput(tempInput + value);
+    }
   };
 
   // Cleanup exit timer on unmount
@@ -413,407 +410,185 @@ export default function NertzScorekeeper() {
               exit={{ opacity: 0, scale: 0.9 }}
               className="flex-1 flex flex-col"
             >
-              {/* Top header with buttons and logo */}
-              <div className="px-2 sm:px-4 md:px-6 lg:px-8 pt-3 sm:pt-4 md:pt-5 lg:pt-6 mb-4 sm:mb-6 md:mb-8 lg:mb-10">
-                {/* Buttons row (mobile/tablet only) */}
-                <div className="flex justify-between items-center mb-6 sm:mb-8 lg:hidden">
+              {/* Top header with back button and logo */}
+              <div className="px-4 pt-4 mb-6">
+                <div className="flex justify-between items-center">
+                  {/* Back button */}
                   <motion.button
                     onClick={() => navigate('/')}
                     whileHover={{ scale: 1.15, rotate: -5 }}
                     whileTap={{ scale: 0.85 }}
-                    className="w-24 h-24 sm:w-28 sm:h-28 md:w-28 md:h-28 bg-transparent p-0 border-0 outline-none focus:outline-none"
-                    style={{ background: 'transparent', border: 'none', outline: 'none', padding: '0 !important', filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.3))' }}
-                  >
-                    <img src={arrowIcon} alt="Back to Menu" className="w-full h-full object-contain" />
-                  </motion.button>
-                  <motion.button
-                    onClick={() => setShowSettings(!showSettings)}
-                    whileHover={{ scale: 1.15, rotate: 15 }}
-                    whileTap={{ scale: 0.85, rotate: 15 }}
-                    className="w-24 h-24 sm:w-28 sm:h-28 md:w-28 md:h-28 bg-transparent p-0 border-0 outline-none focus:outline-none"
-                    style={{ background: 'transparent', border: 'none', outline: 'none', padding: '0 !important', filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.3))' }}
-                  >
-                    <img src={gearIcon} alt="Settings" className="w-full h-full object-cover" />
-                  </motion.button>
-                </div>
-
-                {/* Logo row (mobile/tablet) or full row (desktop) */}
-                <div className="flex justify-between items-center lg:items-start">
-                  {/* Desktop back button (hidden on mobile/tablet) */}
-                  <motion.button
-                    onClick={() => navigate('/')}
-                    whileHover={{ scale: 1.15, rotate: -5 }}
-                    whileTap={{ scale: 0.85 }}
-                    className="hidden lg:block w-12 h-12 sm:w-14 sm:h-14 md:w-18 md:h-18 lg:w-20 lg:h-20 bg-transparent p-0 border-0 outline-none focus:outline-none"
+                    className="w-16 h-16 sm:w-20 sm:h-20 bg-transparent p-0 border-0 outline-none focus:outline-none"
                     style={{ background: 'transparent', border: 'none', outline: 'none', padding: '0 !important', filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.3))' }}
                   >
                     <img src={arrowIcon} alt="Back to Menu" className="w-full h-full object-contain" />
                   </motion.button>
 
-                  {/* Logo (centered on mobile/tablet, centered on desktop) */}
+                  {/* Logo */}
                   <motion.img 
                     src={nertzLogo} 
                     alt="NERTZ" 
-                    className="h-24 sm:h-32 md:h-60 lg:h-48 object-contain mx-auto lg:mx-0"
+                    className="h-20 sm:h-24 md:h-28 object-contain"
                     initial={{ y: -20, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                     transition={{ duration: 0.6, type: 'spring', bounce: 0.4 }}
                     style={{ filter: 'drop-shadow(0 8px 16px rgba(0,0,0,0.4))' }}
                   />
 
-                  {/* Desktop settings button (hidden on mobile/tablet) */}
-                  <motion.button
-                    onClick={() => setShowSettings(!showSettings)}
-                    whileHover={{ scale: 1.15, rotate: 15 }}
-                    whileTap={{ scale: 0.85, rotate: 15 }}
-                    className="hidden lg:block w-12 h-12 sm:w-14 sm:h-14 md:w-18 md:h-18 lg:w-20 lg:h-20 bg-transparent p-0 border-0 outline-none focus:outline-none"
-                    style={{ background: 'transparent', border: 'none', outline: 'none', padding: '0 !important', filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.3))' }}
-                  >
-                    <img src={gearIcon} alt="Settings" className="w-full h-full object-cover" />
-                  </motion.button>
+                  {/* Spacer for symmetry */}
+                  <div className="w-16 h-16 sm:w-20 sm:h-20"></div>
                 </div>
               </div>
 
               {/* Main content centered */}
-              <div className="flex-1 flex flex-col items-center justify-center text-center px-4 sm:px-8 md:px-12 lg:px-16 gap-[30px]">
+              <div className="flex-1 flex flex-col items-center justify-top text-center px-4 gap-4 relative">
 
-                <motion.h2 
-                  className="nertz-heading text-4xl sm:text-5xl md:text-6xl lg:text-7xl mb-12 sm:mb-16 md:mb-20 lg:mb-24"
+                <motion.img
+                  src={deckBanner}
+                  alt="Choose Deck Type"
+                  className="w-full max-w-xl h-auto -mb-10"
                   initial={{ scale: 0.8, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   transition={{ delay: 0.2, duration: 0.5, type: 'spring', bounce: 0.5 }}
-                >
-                  How many teams?
-                </motion.h2>
+                />
 
-                <div className="flex items-center justify-center gap-16 sm:gap-20 md:gap-24 lg:gap-32 mb-12 sm:mb-14 md:mb-16 lg:mb-20">
-                <motion.button
-                  onClick={() => numTeams > 2 && setNumTeams(numTeams - 1)}
-                  disabled={numTeams <= 2}
-                  whileHover={{ scale: 1.2, x: -5 }}
-                  whileTap={{ scale: 0.85 }}
-                  className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 lg:w-28 lg:h-28 disabled:opacity-20 bg-transparent p-0 border-0 outline-none focus:outline-none transition-opacity"
-                  style={{ background: 'transparent', border: 'none', outline: 'none', padding: '0 !important', filter: 'drop-shadow(0 6px 12px rgba(0,0,0,0.4))' }}
-                >
-                  <img 
-                    src={triangleIcon} 
-                    alt="Decrease" 
-                    className="w-full h-full object-contain"
-                    style={{ transform: 'scaleX(-1)' }}
-                  />
-                </motion.button>
-                
+                {/* Deck Type Selection */}
                 <motion.div 
-                  key={numTeams}
-                  initial={{ scale: 0.8, rotate: Math.random() > 0.5 ? -15 : 15 }}
-                  animate={{ scale: 1, rotate: 0 }}
-                  transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-                  className="relative"
+                  className="flex gap-4 mb-4"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3, duration: 0.5 }}
                 >
-                  <img 
-                    src={NUMBER_IMAGES[numTeams]} 
-                    alt={`${numTeams}`}
-                    className="h-32 sm:h-40 md:h-48 lg:h-56 object-contain"
-                    style={{ filter: 'drop-shadow(6px 6px 0px rgba(0,0,0,0.2))' }}
-                  />
+                  <motion.button
+                    onClick={() => setDeckType('8 pack')}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className={`px-8 py-4 rounded-2xl font-black text-2xl transition-all ${
+                      deckType === '8 pack'
+                        ? 'bg-gradient-to-r from-orange-400 to-red-400 text-white scale-105 shadow-xl'
+                        : 'bg-white bg-opacity-80 text-gray-700 shadow-md'
+                    }`}
+                    style={{ fontFamily: "'Comic Neue', 'Comic Sans MS', cursive" }}
+                  >
+                    8 PACK
+                  </motion.button>
+                  <motion.button
+                    onClick={() => setDeckType('12 pack')}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className={`px-8 py-4 rounded-2xl font-black text-2xl transition-all ${
+                      deckType === '12 pack'
+                        ? 'bg-gradient-to-r from-orange-400 to-red-400 text-white scale-105 shadow-xl'
+                        : 'bg-white bg-opacity-80 text-gray-700 shadow-md'
+                    }`}
+                    style={{ fontFamily: "'Comic Neue', 'Comic Sans MS', cursive" }}
+                  >
+                    12 PACK
+                  </motion.button>
                 </motion.div>
 
-                <motion.button
-                  onClick={() => numTeams < 12 && setNumTeams(numTeams + 1)}
-                  disabled={numTeams >= 12}
-                  whileHover={{ scale: 1.2, x: 5 }}
-                  whileTap={{ scale: 0.85 }}
-                  className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 lg:w-28 lg:h-28 disabled:opacity-20 bg-transparent p-0 border-0 outline-none focus:outline-none transition-opacity"
-                  style={{ background: 'transparent', border: 'none', outline: 'none', padding: '0 !important', filter: 'drop-shadow(0 6px 12px rgba(0,0,0,0.4))' }}
+                {/* Color Grid */}
+                <motion.div
+                  className={`grid grid-cols-4 ${deckType === '8 pack' ? 'gap-2.5 max-w-3xl' : 'gap-1 max-w-xl'}`}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.5, duration: 0.5 }}
                 >
-                  <img 
-                    src={triangleIcon} 
-                    alt="Increase" 
-                    className="w-full h-full object-contain"
-                  />
-                </motion.button>
-                </div>
+                  {availableColors.map((cardColor, index) => {
+                    const isSelected = selectedColors.includes(cardColor.id);
+                    return (
+                      <motion.button
+                        key={cardColor.id}
+                        onClick={() => toggleColorSelection(cardColor)}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: 0.6 + index * 0.03, type: 'spring', stiffness: 300 }}
+                        className="relative rounded-lg overflow-hidden"
+                        style={{
+                          aspectRatio: '730/1048',
+                          border: isSelected ? '3px solid #FFD700' : '2px solid transparent',
+                          boxShadow: isSelected 
+                            ? '0 0 15px rgba(255, 215, 0, 0.6), 0 4px 8px rgba(0,0,0,0.3)' 
+                            : '0 2px 4px rgba(0,0,0,0.2)',
+                          opacity: isSelected ? 1 : 0.7,
+                          transform: isSelected ? 'scale(1)' : 'scale(0.95)'
+                        }}
+                      >
+                        <img 
+                          src={cardColor.image} 
+                          alt={cardColor.id}
+                          className="w-full h-full object-cover"
+                        />
+                        {isSelected && (
+                          <motion.div
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            className={`absolute ${deckType === '8 pack' ? 'top-1.5 right-1.5 w-6 h-6' : 'top-1 right-1 w-5 h-5'} bg-yellow-400 rounded-full flex items-center justify-center shadow-lg`}
+                          >
+                            <span className={`text-black ${deckType === '8 pack' ? 'text-sm' : 'text-xs'} font-black`}>✓</span>
+                          </motion.div>
+                        )}
+                      </motion.button>
+                    );
+                  })}
+                </motion.div>
 
+                {/* Start Game Button */}
                 <motion.button
-                  whileHover={{ scale: 1.1, y: -5 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={initializeTeams}
+                  whileHover={selectedColors.length >= 2 ? { scale: 1.1, y: -5 } : {}}
+                  whileTap={selectedColors.length >= 2 ? { scale: 0.95 } : {}}
+                  onClick={startGameWithSelectedColors}
+                  disabled={selectedColors.length < 2}
                   initial={{ y: 20, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: 0.4, duration: 0.5, type: 'spring', bounce: 0.6 }}
-                  className="bg-transparent p-0"
+                  transition={{ delay: 0.8, duration: 0.5, type: 'spring', bounce: 0.6 }}
+                  className="bg-transparent p-0 disabled:opacity-30 transition-opacity relative z-20"
                   style={{ 
                     background: 'transparent',
                     padding: 0,
                     border: 'none',
-                    filter: 'drop-shadow(0 10px 20px rgba(0,0,0,0.4))'
+                    filter: selectedColors.length >= 2 
+                      ? 'drop-shadow(0 10px 20px rgba(0,0,0,0.4))' 
+                      : 'drop-shadow(0 4px 8px rgba(0,0,0,0.2)) grayscale(1)'
                   }}
                 >
                   <img 
                     src={startGameButton} 
                     alt="Start Game" 
-                    className="h-20 sm:h-24 md:h-28 lg:h-36 object-contain"
+                    className="h-16 sm:h-20 md:h-24 object-contain"
                   />
                 </motion.button>
+
+                {/* Ace of Spades - Bottom Left (Fixed to screen) */}
+                <motion.img
+                  src={aceBlack}
+                  alt="Ace of Spades"
+                  className="fixed left-0 bottom-0 h-[30vh] w-auto object-contain pointer-events-none z-10"
+                  initial={{ x: -123, y: 282, opacity: 0, rotate: -15 }}
+                  animate={{ x: -82, y: 188, opacity: 1, rotate: -15 }}
+                  transition={{ delay: 0.6, duration: 0.6, type: 'spring', bounce: 0.4 }}
+                  style={{ 
+                    filter: 'drop-shadow(0 8px 16px rgba(0,0,0,0.4))',
+                    transformOrigin: 'bottom left'
+                  }}
+                />
+
+                {/* Ace of Hearts - Bottom Right (Fixed to screen) */}
+                <motion.img
+                  src={aceRed}
+                  alt="Ace of Hearts"
+                  className="fixed right-0 bottom-0 h-[30vh] w-auto object-contain pointer-events-none z-10"
+                  initial={{ x: 53, y: 262.5, opacity: 0, rotate: 15 }}
+                  animate={{ x: 12, y: 175, opacity: 1, rotate: 15 }}
+                  transition={{ delay: 0.6, duration: 0.6, type: 'spring', bounce: 0.4 }}
+                  style={{ 
+                    filter: 'drop-shadow(0 8px 16px rgba(0,0,0,0.4))',
+                    transformOrigin: 'bottom right'
+                  }}
+                />
               </div>
-
-              {/* Settings Modal */}
-              <AnimatePresence>
-                {showSettings && (
-                  <>
-                    {/* Backdrop */}
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      onClick={() => setShowSettings(false)}
-                      className="fixed inset-0 bg-black bg-opacity-50 z-40"
-                    />
-                    
-                    {/* Modal */}
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.9, y: 50 }}
-                      animate={{ opacity: 1, scale: 1, y: 0 }}
-                      exit={{ opacity: 0, scale: 0.9, y: 50 }}
-                      transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-                      className="fixed inset-4 sm:inset-8 md:inset-16 lg:inset-24 bg-white rounded-3xl shadow-2xl z-50 flex flex-col overflow-hidden"
-                      style={{ maxHeight: '90vh' }}
-                    >
-                      {/* Header */}
-                      <div className="bg-gradient-to-r from-slate-600 to-slate-700 p-6 sm:p-8 md:p-10">
-                        <h2 className="text-4xl sm:text-5xl md:text-6xl font-black text-white text-center tracking-wide"
-                            style={{ fontFamily: "'Comic Neue', 'Comic Sans MS', cursive", textShadow: '2px 2px 4px rgba(0,0,0,0.3)' }}>
-                          SETTINGS
-                        </h2>
-                      </div>
-
-                      {/* Content */}
-                      <div className="flex-1 overflow-y-auto p-6 sm:p-8 md:p-10">
-                        {/* Deck Type */}
-                        <div className="mb-8">
-                          <h3 className="text-2xl sm:text-3xl md:text-4xl font-black mb-4" 
-                              style={{ fontFamily: "'Comic Neue', 'Comic Sans MS', cursive", color: '#2c3e50' }}>
-                            Deck Type
-                          </h3>
-                          <div className="flex gap-4 justify-center">
-                            <button
-                              onClick={() => setDeckType('8 pack')}
-                              className={`px-8 sm:px-12 md:px-16 py-4 sm:py-5 md:py-6 rounded-2xl font-black text-xl sm:text-2xl md:text-3xl transition-all ${
-                                deckType === '8 pack'
-                                  ? 'bg-gradient-to-r from-orange-400 to-red-400 text-white scale-105 shadow-lg'
-                                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                              }`}
-                              style={{ fontFamily: "'Comic Neue', 'Comic Sans MS', cursive" }}
-                            >
-                              8 PACK
-                            </button>
-                            <button
-                              onClick={() => setDeckType('12 pack')}
-                              className={`px-8 sm:px-12 md:px-16 py-4 sm:py-5 md:py-6 rounded-2xl font-black text-xl sm:text-2xl md:text-3xl transition-all ${
-                                deckType === '12 pack'
-                                  ? 'bg-gradient-to-r from-orange-400 to-red-400 text-white scale-105 shadow-lg'
-                                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                              }`}
-                              style={{ fontFamily: "'Comic Neue', 'Comic Sans MS', cursive" }}
-                            >
-                              12 PACK
-                            </button>
-                          </div>
-                        </div>
-
-                        {/* Volume Control */}
-                        <div className="mb-8">
-                          <div className="flex items-center justify-between mb-4">
-                            <h3 className="text-2xl sm:text-3xl md:text-4xl font-black" 
-                                style={{ fontFamily: "'Comic Neue', 'Comic Sans MS', cursive", color: '#2c3e50' }}>
-                              Volume
-                            </h3>
-                            <span className="text-3xl sm:text-4xl md:text-5xl font-black"
-                                  style={{ fontFamily: "'Comic Neue', 'Comic Sans MS', cursive", color: '#4a90e2' }}>
-                              {volume}
-                            </span>
-                          </div>
-                          
-                          {/* Volume Slider */}
-                          <div className="relative mb-6">
-                            <input
-                              type="range"
-                              min="0"
-                              max="100"
-                              value={volume}
-                              onChange={(e) => handleVolumeChange(Number(e.target.value))}
-                              className="w-full h-4 sm:h-5 md:h-6 rounded-full appearance-none cursor-pointer"
-                              style={{
-                                background: `linear-gradient(to right, #4a90e2 0%, #4a90e2 ${volume}%, #cbd5e1 ${volume}%, #cbd5e1 100%)`
-                              }}
-                            />
-                          </div>
-
-                          {/* Mute Button */}
-                          <div className="flex justify-center">
-                            <motion.button
-                              onClick={toggleMute}
-                              whileHover={{ scale: 1.05 }}
-                              whileTap={{ scale: 0.95 }}
-                              className={`px-8 sm:px-12 md:px-16 py-3 sm:py-4 md:py-5 rounded-2xl font-black text-lg sm:text-xl md:text-2xl transition-all ${
-                                isMuted
-                                  ? 'bg-red-500 text-white shadow-lg'
-                                  : 'bg-green-500 text-white shadow-lg'
-                              }`}
-                              style={{ fontFamily: "'Comic Neue', 'Comic Sans MS', cursive" }}
-                            >
-                              {isMuted ? '🔇 UNMUTE' : '🔊 MUTE'}
-                            </motion.button>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Back Button */}
-                      <div className="p-6 sm:p-8 md:p-10 flex justify-center">
-                        <motion.button
-                          onClick={() => setShowSettings(false)}
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                          className="px-16 sm:px-20 md:px-24 py-4 sm:py-5 md:py-6 rounded-full font-black text-2xl sm:text-3xl md:text-4xl text-white shadow-xl"
-                          style={{ 
-                            background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)',
-                            fontFamily: "'Comic Neue', 'Comic Sans MS', cursive"
-                          }}
-                        >
-                          Back
-                        </motion.button>
-                      </div>
-                    </motion.div>
-                  </>
-                )}
-              </AnimatePresence>
-            </motion.div>
-          )}
-
-          {gameState === 'teamSetup' && (
-            <motion.div
-              key="teamSetup"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="min-h-screen flex flex-col items-center justify-center relative"
-            >
-              <motion.button
-                onClick={() => {
-                  setTeams([]);
-                  setCurrentTeamSetup(0);
-                  setGameState('home');
-                }}
-                whileHover={{ scale: 1.15, rotate: -5 }}
-                whileTap={{ scale: 0.85 }}
-                className="absolute top-4 left-4 sm:top-6 sm:left-6 w-24 h-24 sm:w-28 sm:h-28 md:w-28 md:h-28 z-10 bg-transparent p-0 border-0 outline-none focus:outline-none"
-                style={{ background: 'transparent', border: 'none', outline: 'none', padding: '0 !important', filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.3))' }}
-              >
-                <img src={arrowIcon} alt="Back" className="w-full h-full object-contain" />
-              </motion.button>
-
-              <h2 className="nertz-heading text-2xl sm:text-3xl md:text-4xl lg:text-5xl mb-8 sm:mb-12 md:mb-16 px-4">
-                Team {currentTeamSetup + 1}: Pick a color!
-              </h2>
-
-              <div className="grid grid-cols-4 gap-4 sm:gap-6 md:gap-8 lg:gap-10 max-w-sm sm:max-w-2xl md:max-w-4xl lg:max-w-5xl mx-auto px-4">
-                {DECK_COLORS[deckType].map((cardColor, i) => {
-                  const isUsed = usedColors.includes(cardColor.color);
-                  const delay = i * 0.08;
-                  const isEven = i % 2 === 0;
-                  const hoverRotate = isEven ? -5 : 5;
-                  
-                  return (
-                    <motion.button
-                      key={cardColor.id}
-                      initial={{ 
-                        opacity: 0,
-                        scale: 0.8,
-                        rotateZ: 0
-                      }}
-                      animate={{ 
-                        opacity: 1,
-                        scale: 1,
-                        rotateZ: 0
-                      }}
-                      transition={{ 
-                        delay,
-                        duration: 0.4,
-                        ease: [0.34, 1.56, 0.64, 1],
-                        opacity: { duration: 0.3 },
-                        scale: { 
-                          type: 'spring',
-                          stiffness: 200,
-                          damping: 15
-                        }
-                      }}
-                      whileHover={{ 
-                        scale: 1.1, 
-                        rotateZ: hoverRotate,
-                        z: 10,
-                        transition: { duration: 0.2 }
-                      }}
-                      onClick={() => !isUsed && selectColor(cardColor)}
-                      disabled={isUsed}
-                      className="w-full transition-all active:scale-95 disabled:opacity-30 disabled:hover:scale-100 disabled:cursor-not-allowed overflow-hidden relative"
-                      style={{ 
-                        aspectRatio: '730/1048',
-                        minHeight: '80px',
-                        border: isUsed ? '3px solid rgba(0,0,0,0.3)' : 'none',
-                        padding: 0,
-                        borderRadius: '10px',
-                        boxShadow: '-4px 4px 12px rgba(0, 0, 0, 0.5)'
-                      }}
-                    >
-                      <img 
-                        src={cardColor.image} 
-                        alt={cardColor.id}
-                        className="w-full h-full object-cover"
-                        style={{
-                          opacity: isUsed ? 0.75 : 1
-                        }}
-                      />
-                      {isUsed && (
-                        <div className="absolute inset-0 flex items-center justify-center" style={{ backgroundColor: 'rgba(64, 64, 64, 0.5)' }}>
-                          <div className="text-5xl sm:text-6xl font-bold text-white drop-shadow-lg">✓</div>
-                        </div>
-                      )}
-                    </motion.button>
-                  );
-                })}
-              </div>
-            </motion.div>
-          )}
-
-          {gameState === 'readyToStart' && (
-            <motion.div
-              key="readyToStart"
-              initial={{ opacity: 0, scale: 1 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.8 }}
-              className="min-h-screen flex flex-col items-center justify-center relative"
-            >
-              <motion.h2 
-                className="nertz-heading text-4xl sm:text-5xl md:text-6xl lg:text-7xl mb-12 sm:mb-16 md:mb-20 lg:mb-24"
-                initial={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ duration: 0.6, type: 'spring', bounce: 0.4 }}
-              >
-                Ready to Start?
-              </motion.h2>
-
-              <motion.button
-                onClick={handleStartGame}
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-                className="h-20 sm:h-24 md:h-28 lg:h-36 bg-transparent p-0 border-0 outline-none focus:outline-none"
-                style={{ background: 'transparent', border: 'none', outline: 'none', padding: '0 !important', filter: 'drop-shadow(0 8px 16px rgba(0,0,0,0.4))' }}
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.3, duration: 0.5 }}
-              >
-                <img src={startGameButton} alt="Start Game" className="h-full object-contain" />
-              </motion.button>
             </motion.div>
           )}
 
@@ -883,34 +658,6 @@ export default function NertzScorekeeper() {
             </motion.div>
           )}
 
-          {gameState === 'colorSelect' && (
-            <motion.div
-              key="colorSelect"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="text-center"
-            >
-              <h2 className="text-3xl font-bold mb-8">Select Team Color</h2>
-              <div className="grid grid-cols-4 gap-4">
-                {availableColors.map(cardColor => (
-                  <button
-                    key={cardColor.id}
-                    onClick={() => selectColor(cardColor)}
-                    className="rounded-xl overflow-hidden"
-                    style={{ aspectRatio: '730/1048' }}
-                  >
-                    <img 
-                      src={cardColor.image} 
-                      alt={cardColor.id}
-                      className="w-full h-full object-cover"
-                    />
-                  </button>
-                ))}
-              </div>
-            </motion.div>
-          )}
-
           {gameState === 'roundEnd' && roundWinner === null && (
             <motion.div
               key="roundEndWinner"
@@ -955,12 +702,17 @@ export default function NertzScorekeeper() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
-              className="min-h-screen flex flex-col items-center justify-center text-center"
+              className="min-h-screen flex flex-col items-center justify-center text-center px-4"
             >
               <div 
-                className="w-24 h-32 mx-auto mb-6 rounded-2xl shadow-2xl"
-                style={{ backgroundColor: teams[currentInputTeam].color }}
-              />
+                className="w-24 h-32 mx-auto mb-6 rounded-2xl shadow-2xl overflow-hidden"
+              >
+                <img
+                  src={teams[currentInputTeam].colorImage}
+                  alt={teams[currentInputTeam].name}
+                  className="w-full h-full object-cover"
+                />
+              </div>
 
               <h2 
                 className="text-3xl font-bold mb-4"
@@ -972,39 +724,121 @@ export default function NertzScorekeeper() {
                 {teams[currentInputTeam].name}
               </h2>
               
-              <p className="text-xl mb-6" style={{ fontFamily: "'Comic Neue', 'Comic Sans MS', cursive" }}>
+              <p className="text-3xl sm:text-4xl font-black mb-6" style={{ fontFamily: "'Comic Neue', 'Comic Sans MS', cursive", color: '#ffffff' }}>
                 Cards remaining in hand?
               </p>
 
-              <input
-                type="number"
-                value={tempInput}
-                onChange={e => setTempInput(e.target.value)}
-                className="w-full max-w-xs px-6 py-4 text-4xl font-black text-center rounded-3xl shadow-xl mb-6 border-4"
+              {/* Input Display - iOS Calculator style */}
+              <div
+                className="w-full max-w-md px-8 py-6 text-6xl sm:text-7xl font-black text-center rounded-3xl shadow-2xl mb-4 border-4 bg-white"
                 style={{ 
                   borderColor: teams[currentInputTeam].color,
-                  fontFamily: "'Comic Neue', 'Comic Sans MS', cursive"
+                  fontFamily: "'Comic Neue', 'Comic Sans MS', cursive",
+                  color: '#000000',
+                  minHeight: '120px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
                 }}
-                placeholder="0"
-                autoFocus
-              />
+              >
+                {tempInput || '0'}
+              </div>
 
-              <p className="text-lg mb-6" style={{ color: '#666', fontFamily: "'Comic Neue', 'Comic Sans MS', cursive" }}>
+              <p className="text-lg mb-6 font-bold" style={{ color: '#666', fontFamily: "'Comic Neue', 'Comic Sans MS', cursive" }}>
                 Each card = -2 points
               </p>
 
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={submitHandCards}
-                className="px-12 py-4 rounded-full text-2xl font-black text-white shadow-2xl"
-                style={{ 
-                  background: `linear-gradient(135deg, ${BICYCLE_ORANGE} 0%, #d65a0f 100%)`,
-                  fontFamily: "'Comic Neue', 'Comic Sans MS', cursive"
-                }}
-              >
-                NEXT
-              </motion.button>
+              {/* Desktop: Show input and button */}
+              <div className="hidden lg:flex flex-col items-center gap-4">
+                <input
+                  type="number"
+                  value={tempInput}
+                  onChange={e => setTempInput(e.target.value)}
+                  className="w-full max-w-xs px-6 py-4 text-4xl font-black text-center rounded-3xl shadow-xl border-4"
+                  style={{ 
+                    borderColor: teams[currentInputTeam].color,
+                    fontFamily: "'Comic Neue', 'Comic Sans MS', cursive"
+                  }}
+                  placeholder="0"
+                  autoFocus
+                />
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={submitHandCards}
+                  className="px-12 py-4 rounded-full text-2xl font-black text-white shadow-2xl"
+                  style={{ 
+                    background: `linear-gradient(135deg, ${BICYCLE_ORANGE} 0%, #d65a0f 100%)`,
+                    fontFamily: "'Comic Neue', 'Comic Sans MS', cursive"
+                  }}
+                >
+                  NEXT
+                </motion.button>
+              </div>
+
+              {/* Mobile/Tablet/iPad: Show numpad */}
+              <div className="lg:hidden grid grid-cols-3 gap-3 sm:gap-4 w-full max-w-sm mt-4">
+                {/* Numbers 1-9 */}
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
+                  <motion.button
+                    key={num}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => handleNumpadPress(num.toString())}
+                    className="aspect-square rounded-2xl shadow-lg p-3 flex items-center justify-center"
+                    style={{
+                      background: 'linear-gradient(135deg, #4a5568 0%, #2d3748 100%)'
+                    }}
+                  >
+                    <img 
+                      src={NUMBER_IMAGES[num]} 
+                      alt={num.toString()}
+                      className="w-full h-full object-contain"
+                      style={{ filter: 'drop-shadow(2px 2px 4px rgba(0,0,0,0.3))' }}
+                    />
+                  </motion.button>
+                ))}
+                
+                {/* Bottom row: Backspace, 0, Enter */}
+                <motion.button
+                  whileTap={{ scale: 0.9 }}
+                  onClick={() => handleNumpadPress('backspace')}
+                  className="aspect-square rounded-2xl text-3xl font-black text-white shadow-lg flex items-center justify-center"
+                  style={{
+                    background: 'linear-gradient(135deg, #e53e3e 0%, #c53030 100%)',
+                    fontFamily: "'Comic Neue', 'Comic Sans MS', cursive"
+                  }}
+                >
+                  ←
+                </motion.button>
+
+                <motion.button
+                  whileTap={{ scale: 0.9 }}
+                  onClick={() => handleNumpadPress('0')}
+                  className="aspect-square rounded-2xl shadow-lg p-3 flex items-center justify-center"
+                  style={{
+                    background: 'linear-gradient(135deg, #4a5568 0%, #2d3748 100%)'
+                  }}
+                >
+                  <img 
+                    src={NUMBER_IMAGES[0]} 
+                    alt="0"
+                    className="w-full h-full object-contain"
+                    style={{ filter: 'drop-shadow(2px 2px 4px rgba(0,0,0,0.3))' }}
+                  />
+                </motion.button>
+
+                <motion.button
+                  whileTap={{ scale: 0.9 }}
+                  onClick={() => handleNumpadPress('enter')}
+                  className="aspect-square rounded-2xl text-3xl font-black text-white shadow-lg flex items-center justify-center"
+                  style={{
+                    background: `linear-gradient(135deg, ${BICYCLE_ORANGE} 0%, #d65a0f 100%)`,
+                    fontFamily: "'Comic Neue', 'Comic Sans MS', cursive"
+                  }}
+                >
+                  ✓
+                </motion.button>
+              </div>
             </motion.div>
           )}
 
@@ -1014,12 +848,17 @@ export default function NertzScorekeeper() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
-              className="min-h-screen flex flex-col items-center justify-center text-center"
+              className="min-h-screen flex flex-col items-center justify-center text-center px-4"
             >
               <div 
-                className="w-24 h-32 mx-auto mb-6 rounded-2xl shadow-2xl"
-                style={{ backgroundColor: teams[currentInputTeam].color }}
-              />
+                className="w-24 h-32 mx-auto mb-6 rounded-2xl shadow-2xl overflow-hidden"
+              >
+                <img
+                  src={teams[currentInputTeam].colorImage}
+                  alt={teams[currentInputTeam].name}
+                  className="w-full h-full object-cover"
+                />
+              </div>
 
               <h2 
                 className="text-3xl font-bold mb-4"
@@ -1031,39 +870,121 @@ export default function NertzScorekeeper() {
                 {teams[currentInputTeam].name}
               </h2>
               
-              <p className="text-xl mb-6" style={{ fontFamily: "'Comic Neue', 'Comic Sans MS', cursive" }}>
+              <p className="text-3xl sm:text-4xl font-black mb-6" style={{ fontFamily: "'Comic Neue', 'Comic Sans MS', cursive", color: '#ffffff' }}>
                 Cards in middle pile?
               </p>
 
-              <input
-                type="number"
-                value={tempInput}
-                onChange={e => setTempInput(e.target.value)}
-                className="w-full max-w-xs px-6 py-4 text-4xl font-black text-center rounded-3xl shadow-xl mb-6 border-4"
+              {/* Input Display - iOS Calculator style */}
+              <div
+                className="w-full max-w-md px-8 py-6 text-6xl sm:text-7xl font-black text-center rounded-3xl shadow-2xl mb-4 border-4 bg-white"
                 style={{ 
                   borderColor: teams[currentInputTeam].color,
-                  fontFamily: "'Comic Neue', 'Comic Sans MS', cursive"
+                  fontFamily: "'Comic Neue', 'Comic Sans MS', cursive",
+                  color: '#000000',
+                  minHeight: '120px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
                 }}
-                placeholder="0"
-                autoFocus
-              />
+              >
+                {tempInput || '0'}
+              </div>
 
-              <p className="text-lg mb-6" style={{ color: '#666', fontFamily: "'Comic Neue', 'Comic Sans MS', cursive" }}>
+              <p className="text-lg mb-6 font-bold" style={{ color: '#666', fontFamily: "'Comic Neue', 'Comic Sans MS', cursive" }}>
                 Each card = +1 point
               </p>
 
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={submitPileCards}
-                className="px-12 py-4 rounded-full text-2xl font-black text-white shadow-2xl"
-                style={{ 
-                  background: `linear-gradient(135deg, ${BICYCLE_ORANGE} 0%, #d65a0f 100%)`,
-                  fontFamily: "'Comic Neue', 'Comic Sans MS', cursive"
-                }}
-              >
-                NEXT
-              </motion.button>
+              {/* Desktop: Show input and button */}
+              <div className="hidden lg:flex flex-col items-center gap-4">
+                <input
+                  type="number"
+                  value={tempInput}
+                  onChange={e => setTempInput(e.target.value)}
+                  className="w-full max-w-xs px-6 py-4 text-4xl font-black text-center rounded-3xl shadow-xl border-4"
+                  style={{ 
+                    borderColor: teams[currentInputTeam].color,
+                    fontFamily: "'Comic Neue', 'Comic Sans MS', cursive"
+                  }}
+                  placeholder="0"
+                  autoFocus
+                />
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={submitPileCards}
+                  className="px-12 py-4 rounded-full text-2xl font-black text-white shadow-2xl"
+                  style={{ 
+                    background: `linear-gradient(135deg, ${BICYCLE_ORANGE} 0%, #d65a0f 100%)`,
+                    fontFamily: "'Comic Neue', 'Comic Sans MS', cursive"
+                  }}
+                >
+                  NEXT
+                </motion.button>
+              </div>
+
+              {/* Mobile/Tablet/iPad: Show numpad */}
+              <div className="lg:hidden grid grid-cols-3 gap-3 sm:gap-4 w-full max-w-sm mt-4">
+                {/* Numbers 1-9 */}
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
+                  <motion.button
+                    key={num}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => handleNumpadPress(num.toString())}
+                    className="aspect-square rounded-2xl shadow-lg p-3 flex items-center justify-center"
+                    style={{
+                      background: 'linear-gradient(135deg, #4a5568 0%, #2d3748 100%)'
+                    }}
+                  >
+                    <img 
+                      src={NUMBER_IMAGES[num]} 
+                      alt={num.toString()}
+                      className="w-full h-full object-contain"
+                      style={{ filter: 'drop-shadow(2px 2px 4px rgba(0,0,0,0.3))' }}
+                    />
+                  </motion.button>
+                ))}
+                
+                {/* Bottom row: Backspace, 0, Enter */}
+                <motion.button
+                  whileTap={{ scale: 0.9 }}
+                  onClick={() => handleNumpadPress('backspace')}
+                  className="aspect-square rounded-2xl text-3xl font-black text-white shadow-lg flex items-center justify-center"
+                  style={{
+                    background: 'linear-gradient(135deg, #e53e3e 0%, #c53030 100%)',
+                    fontFamily: "'Comic Neue', 'Comic Sans MS', cursive"
+                  }}
+                >
+                  ←
+                </motion.button>
+
+                <motion.button
+                  whileTap={{ scale: 0.9 }}
+                  onClick={() => handleNumpadPress('0')}
+                  className="aspect-square rounded-2xl shadow-lg p-3 flex items-center justify-center"
+                  style={{
+                    background: 'linear-gradient(135deg, #4a5568 0%, #2d3748 100%)'
+                  }}
+                >
+                  <img 
+                    src={NUMBER_IMAGES[0]} 
+                    alt="0"
+                    className="w-full h-full object-contain"
+                    style={{ filter: 'drop-shadow(2px 2px 4px rgba(0,0,0,0.3))' }}
+                  />
+                </motion.button>
+
+                <motion.button
+                  whileTap={{ scale: 0.9 }}
+                  onClick={() => handleNumpadPress('enter')}
+                  className="aspect-square rounded-2xl text-3xl font-black text-white shadow-lg flex items-center justify-center"
+                  style={{
+                    background: `linear-gradient(135deg, ${BICYCLE_ORANGE} 0%, #d65a0f 100())`,
+                    fontFamily: "'Comic Neue', 'Comic Sans MS', cursive"
+                  }}
+                >
+                  ✓
+                </motion.button>
+              </div>
             </motion.div>
           )}
 
