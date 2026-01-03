@@ -3,9 +3,20 @@
   padding: 1rem;
 }
 
-.homepage h1 {
-  margin-bottom: 2rem;
-  font-size: 2rem;
+.game-section {
+  margin-bottom: 3rem;
+}
+
+.game-section:last-child {
+  margin-bottom: 1rem;
+}
+
+.game-section h1 {
+  margin-bottom: 1.5rem;
+  font-size: 1.75rem;
+  color: #646cff;
+  border-bottom: 2px solid #646cff;
+  padding-bottom: 0.5rem;
 }
 
 .games-grid {
@@ -17,7 +28,7 @@
 
 .game-card {
   border: 6px solid #646cff;
-  border-radius: 16px;
+  border-radius: 24px;
   padding: 2rem;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -88,8 +99,13 @@
     padding: 2rem;
   }
 
-  .homepage h1 {
-    font-size: 2.5rem;
+  .game-section {
+    margin-bottom: 4rem;
+  }
+
+  .game-section h1 {
+    font-size: 2.25rem;
+    margin-bottom: 2rem;
   }
 
   .game-card {
