@@ -33,6 +33,10 @@ body {
   -ms-user-select: none;
   user-select: none;
   -webkit-touch-callout: none;
+  /* Performance optimizations for iOS */
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: none;
+  touch-action: manipulation;
 }
 
 h1 {
@@ -44,6 +48,12 @@ button {
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
   filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3)) drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+  /* Improve button responsiveness */
+  touch-action: manipulation;
+  /* Hardware acceleration */
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  will-change: transform;
 }
 
 img {
@@ -52,12 +62,23 @@ img {
   -moz-user-drag: none;
   -o-user-drag: none;
   pointer-events: none;
+  /* Hardware acceleration for images */
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+}
+
+/* Improve input responsiveness */
+input, textarea, select {
+  touch-action: manipulation;
+  -webkit-user-select: auto;
+  user-select: auto;
 }
 
 /* Volume Slider Styling */
 input[type="range"] {
   -webkit-appearance: none;
   appearance: none;
+  touch-action: none; /* Allow drag on slider */
 }
 
 input[type="range"]::-webkit-slider-thumb {
@@ -89,6 +110,17 @@ input[type="range"]::-moz-range-thumb {
 
 input[type="range"]::-moz-range-thumb:hover {
   transform: scale(1.1);
+}
+
+/* Optimize animations for 60fps */
+@media (prefers-reduced-motion: no-preference) {
+  * {
+    /* Use GPU acceleration for smoother animations */
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    -webkit-perspective: 1000;
+    perspective: 1000;
+  }
 }
 
 @media (prefers-color-scheme: light) {
