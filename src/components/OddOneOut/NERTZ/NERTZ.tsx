@@ -403,6 +403,10 @@ export default function NertzScorekeeper() {
     setTeams([]);
     setSelectedColors([]);
     setCurrentRound(1);
+    setRoundWinner(null);
+    setCurrentInputTeam(0);
+    setInputPhase('hand');
+    setTempInput('');
   };
 
   const sortedTeams = [...teams].sort((a, b) => b.score - a.score);
@@ -767,9 +771,10 @@ export default function NertzScorekeeper() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="h-full flex items-center justify-center overflow-hidden"
+              className="h-full w-full flex items-center justify-center overflow-hidden relative"
             >
-              <motion.button
+              {/* Full screen clickable button */}
+              <button
                 onClick={() => {
                   // Play NERTZ sound effect immediately
                   if (nertzSoundRef.current) {
@@ -785,24 +790,35 @@ export default function NertzScorekeeper() {
                     gameMusicRef.current.pause();
                   }
                   
-                  // End the round
+                  // Initialize round state and end the round
+                  startRound();
                   setGameState('roundEnd');
                 }}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="bg-transparent p-0 border-0 outline-none focus:outline-none"
-                style={{ background: 'transparent', border: 'none', outline: 'none', padding: '0 !important' }}
+                className="absolute inset-0 w-full h-full bg-transparent border-0 outline-none focus:outline-none cursor-pointer"
+                style={{ 
+                  background: 'transparent', 
+                  border: 'none', 
+                  outline: 'none', 
+                  padding: 0,
+                  zIndex: 1
+                }}
+                aria-label="Click anywhere to call NERTZ and end the round"
+              />
+              
+              {/* Logo centered (non-interactive, just visual) */}
+              <motion.img 
+                src={nertzLogo} 
+                alt="NERTZ - End Round" 
+                className="h-48 sm:h-64 md:h-80 lg:h-96 object-contain pointer-events-none"
+                style={{ 
+                  filter: 'drop-shadow(0 12px 24px rgba(0,0,0,0.5))',
+                  zIndex: 2,
+                  position: 'relative'
+                }}
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ duration: 0.6, type: 'spring', bounce: 0.4 }}
-              >
-                <img 
-                  src={nertzLogo} 
-                  alt="NERTZ - End Round" 
-                  className="h-48 sm:h-64 md:h-80 lg:h-96 object-contain"
-                  style={{ filter: 'drop-shadow(0 12px 24px rgba(0,0,0,0.5))' }}
-                />
-              </motion.button>
+              />
             </motion.div>
           )}
 
