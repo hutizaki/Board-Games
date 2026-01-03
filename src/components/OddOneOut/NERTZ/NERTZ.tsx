@@ -7,23 +7,28 @@ import './NERTZ.css';
 import nertzBackground from '../../../assets/Nertz/nertzBackground.png';
 
 // Import logo
-import nertzLogo from '../../../assets/Nertz/nertzLogo.png';
+import nertzLogo from '../../../assets/Nertz/buttons/nertzLogo.png';
 
-// Import UI icons
-import arrowIcon from '../../../assets/Nertz/arrow.png';
-import startGameButton from '../../../assets/Nertz/startGame.png';
+// Import UI buttons
+import arrowIcon from '../../../assets/Nertz/buttons/arrow.png';
+import startGameButton from '../../../assets/Nertz/buttons/startGame.png';
+import continueButton from '../../../assets/Nertz/buttons/continue.png';
+import scorePlaque from '../../../assets/Nertz/scorePlaque.png';
 import aceBlack from '../../../assets/Nertz/aceBlack.png';
 import aceRed from '../../../assets/Nertz/aceRed.png';
 
 // Import banners
-import deckBanner from '../../../assets/Nertz/numberPad/banners/deckBanner.png';
-import cardHandBanner from '../../../assets/Nertz/numberPad/banners/cardHandBanner.png';
-import cardMiddleBanner from '../../../assets/Nertz/numberPad/banners/cardMiddleBanner.png';
+import deckBanner from '../../../assets/Nertz/banners/deckBanner.png';
+import cardHandBanner from '../../../assets/Nertz/banners/cardHandBanner.png';
+import cardMiddleBanner from '../../../assets/Nertz/banners/cardMiddleBanner.png';
 
 // Import audio
-import countdownAudio from '../../../assets/Nertz/countdown.opus';
-import nertzSoundEffect from '../../../assets/Nertz/NERTZ.opus';
-import gameMusic from '../../../assets/Nertz/music.opus';
+import countdownAudio from '../../../assets/Nertz/audio/countdown.opus';
+import nertzSoundEffect from '../../../assets/Nertz/audio/NERTZ.opus';
+import gameMusic from '../../../assets/Nertz/audio/music.opus';
+import gameEndAudio from '../../../assets/Nertz/audio/gameEnd.opus';
+import buttonClickAudio from '../../../assets/Nertz/audio/buttonClick.opus';
+import cardSelectionAudio from '../../../assets/Nertz/audio/cardSelection.opus';
 
 // Import number images (for countdown)
 import number0 from '../../../assets/Nertz/numbers/0.png';
@@ -55,28 +60,52 @@ import numpadBackspace from '../../../assets/Nertz/numberPad/numpadBackspace.png
 import numpadEnter from '../../../assets/Nertz/numberPad/numpadEnter.png';
 
 // Import 8 pack cards
-import pink8 from '../../../assets/Nertz/8_Pack/pink.png';
-import orange8 from '../../../assets/Nertz/8_Pack/orange.png';
-import green8 from '../../../assets/Nertz/8_Pack/green.png';
-import yellow8 from '../../../assets/Nertz/8_Pack/yellow.png';
-import blue8 from '../../../assets/Nertz/8_Pack/blue.png';
-import purple8 from '../../../assets/Nertz/8_Pack/purple.png';
-import turquoise8 from '../../../assets/Nertz/8_Pack/turquoise.png';
-import grey8 from '../../../assets/Nertz/8_Pack/grey.png';
+import pink8 from '../../../assets/Nertz/8_Pack/cards/pink.png';
+import orange8 from '../../../assets/Nertz/8_Pack/cards/orange.png';
+import green8 from '../../../assets/Nertz/8_Pack/cards/green.png';
+import yellow8 from '../../../assets/Nertz/8_Pack/cards/yellow.png';
+import blue8 from '../../../assets/Nertz/8_Pack/cards/blue.png';
+import purple8 from '../../../assets/Nertz/8_Pack/cards/purple.png';
+import turquoise8 from '../../../assets/Nertz/8_Pack/cards/turquoise.png';
+import grey8 from '../../../assets/Nertz/8_Pack/cards/grey.png';
+
+// Import 8 pack team images
+import pink8Team from '../../../assets/Nertz/8_Pack/teams/pink.png';
+import orange8Team from '../../../assets/Nertz/8_Pack/teams/orange.png';
+import green8Team from '../../../assets/Nertz/8_Pack/teams/green.png';
+import yellow8Team from '../../../assets/Nertz/8_Pack/teams/yellow.png';
+import blue8Team from '../../../assets/Nertz/8_Pack/teams/blue.png';
+import magenta8Team from '../../../assets/Nertz/8_Pack/teams/magenta.png';
+import turquoise8Team from '../../../assets/Nertz/8_Pack/teams/turquoise.png';
+import grey8Team from '../../../assets/Nertz/8_Pack/teams/grey.png';
 
 // Import 12 pack cards
-import crimsonRed12 from '../../../assets/Nertz/12_Pack/crimson_red.png';
-import lightBlue12 from '../../../assets/Nertz/12_Pack/light_blue.png';
-import darkPurple12 from '../../../assets/Nertz/12_Pack/dark_purple.png';
-import oxfordBlue12 from '../../../assets/Nertz/12_Pack/oxford_blue.png';
-import burgundy12 from '../../../assets/Nertz/12_Pack/burgundy.png';
-import yellow12 from '../../../assets/Nertz/12_Pack/yellow.png';
-import deepTeal12 from '../../../assets/Nertz/12_Pack/deep_teal.png';
-import hotPink12 from '../../../assets/Nertz/12_Pack/hot_pink.png';
-import limeGreen12 from '../../../assets/Nertz/12_Pack/lime_green.png';
-import orange12 from '../../../assets/Nertz/12_Pack/orange.png';
-import magenta12 from '../../../assets/Nertz/12_Pack/magenta.png';
-import sapphireBlue12 from '../../../assets/Nertz/12_Pack/sapphire_blue.png';
+import crimsonRed12 from '../../../assets/Nertz/12_Pack/cards/crimson_red.png';
+import lightBlue12 from '../../../assets/Nertz/12_Pack/cards/light_blue.png';
+import darkPurple12 from '../../../assets/Nertz/12_Pack/cards/dark_purple.png';
+import oxfordBlue12 from '../../../assets/Nertz/12_Pack/cards/oxford_blue.png';
+import burgundy12 from '../../../assets/Nertz/12_Pack/cards/burgundy.png';
+import yellow12 from '../../../assets/Nertz/12_Pack/cards/yellow.png';
+import deepTeal12 from '../../../assets/Nertz/12_Pack/cards/deep_teal.png';
+import hotPink12 from '../../../assets/Nertz/12_Pack/cards/hot_pink.png';
+import limeGreen12 from '../../../assets/Nertz/12_Pack/cards/lime_green.png';
+import orange12 from '../../../assets/Nertz/12_Pack/cards/orange.png';
+import magenta12 from '../../../assets/Nertz/12_Pack/cards/magenta.png';
+import sapphireBlue12 from '../../../assets/Nertz/12_Pack/cards/sapphire_blue.png';
+
+// Import 12 pack team images
+import crimsonRed12Team from '../../../assets/Nertz/12_Pack/teams/crimson_red.png';
+import lightBlue12Team from '../../../assets/Nertz/12_Pack/teams/light_blue.png';
+import darkPurple12Team from '../../../assets/Nertz/12_Pack/teams/dark_purple.png';
+import oxfordBlue12Team from '../../../assets/Nertz/12_Pack/teams/oxford_blue.png';
+import burgundy12Team from '../../../assets/Nertz/12_Pack/teams/burgundy.png';
+import yellow12Team from '../../../assets/Nertz/12_Pack/teams/yellow.png';
+import deepTeal12Team from '../../../assets/Nertz/12_Pack/teams/deep_teal.png';
+import hotPink12Team from '../../../assets/Nertz/12_Pack/teams/hot_pink.png';
+import limeGreen12Team from '../../../assets/Nertz/12_Pack/teams/lime_green.png';
+import orange12Team from '../../../assets/Nertz/12_Pack/teams/orange.png';
+import magenta12Team from '../../../assets/Nertz/12_Pack/teams/magenta.png';
+import sapphireBlue12Team from '../../../assets/Nertz/12_Pack/teams/sapphire_blue.png';
 
 type GameState = 'home' | 'teamSetup' | 'colorSelect' | 'readyToStart' | 'countdown' | 'game' | 'roundEnd' | 'roundStandings' | 'results';
 type DeckType = '8 pack' | '12 pack';
@@ -85,6 +114,7 @@ interface Team {
   name: string;
   color: string;
   colorImage: string;
+  teamImage: string;
   score: number;
   cardsInHand: number;
   cardsInPile: number;
@@ -94,32 +124,33 @@ interface CardColor {
   id: string;
   color: string;
   image: string;
+  teamImage: string;
 }
 
 const DECK_COLORS: Record<DeckType, CardColor[]> = {
   '8 pack': [
-    { id: 'pink', color: '#f40372', image: pink8 },
-    { id: 'orange', color: '#fc862e', image: orange8 },
-    { id: 'green', color: '#00bb47', image: green8 },
-    { id: 'yellow', color: '#fbc522', image: yellow8 },
-    { id: 'blue', color: '#1495e3', image: blue8 },
-    { id: 'purple', color: '#a11eb0', image: purple8 },
-    { id: 'turquoise', color: '#00cecb', image: turquoise8 },
-    { id: 'grey', color: '#4f5457', image: grey8 }
+    { id: 'pink', color: '#f40372', image: pink8, teamImage: pink8Team },
+    { id: 'orange', color: '#fc862e', image: orange8, teamImage: orange8Team },
+    { id: 'green', color: '#00bb47', image: green8, teamImage: green8Team },
+    { id: 'yellow', color: '#fbc522', image: yellow8, teamImage: yellow8Team },
+    { id: 'blue', color: '#1495e3', image: blue8, teamImage: blue8Team },
+    { id: 'magenta', color: '#a11eb0', image: purple8, teamImage: magenta8Team },
+    { id: 'turquoise', color: '#00cecb', image: turquoise8, teamImage: turquoise8Team },
+    { id: 'grey', color: '#4f5457', image: grey8, teamImage: grey8Team }
   ],
   '12 pack': [
-    { id: 'crimson_red', color: '#ff0044', image: crimsonRed12 },
-    { id: 'light_blue', color: '#008fd8', image: lightBlue12 },
-    { id: 'dark_purple', color: '#4c0244', image: darkPurple12 },
-    { id: 'oxford_blue', color: '#011355', image: oxfordBlue12 },
-    { id: 'burgundy', color: '#87042b', image: burgundy12 },
-    { id: 'yellow', color: '#fdc600', image: yellow12 },
-    { id: 'deep_teal', color: '#00433a', image: deepTeal12 },
-    { id: 'hot_pink', color: '#f25fdd', image: hotPink12 },
-    { id: 'lime_green', color: '#afd509', image: limeGreen12 },
-    { id: 'orange', color: '#f55607', image: orange12 },
-    { id: 'magenta', color: '#e500cc', image: magenta12 },
-    { id: 'sapphire_blue', color: '#005299', image: sapphireBlue12 }
+    { id: 'crimson_red', color: '#ff0044', image: crimsonRed12, teamImage: crimsonRed12Team },
+    { id: 'light_blue', color: '#008fd8', image: lightBlue12, teamImage: lightBlue12Team },
+    { id: 'dark_purple', color: '#4c0244', image: darkPurple12, teamImage: darkPurple12Team },
+    { id: 'oxford_blue', color: '#011355', image: oxfordBlue12, teamImage: oxfordBlue12Team },
+    { id: 'burgundy', color: '#87042b', image: burgundy12, teamImage: burgundy12Team },
+    { id: 'yellow', color: '#fdc600', image: yellow12, teamImage: yellow12Team },
+    { id: 'deep_teal', color: '#00433a', image: deepTeal12, teamImage: deepTeal12Team },
+    { id: 'hot_pink', color: '#f25fdd', image: hotPink12, teamImage: hotPink12Team },
+    { id: 'lime_green', color: '#afd509', image: limeGreen12, teamImage: limeGreen12Team },
+    { id: 'orange', color: '#f55607', image: orange12, teamImage: orange12Team },
+    { id: 'magenta', color: '#e500cc', image: magenta12, teamImage: magenta12Team },
+    { id: 'sapphire_blue', color: '#005299', image: sapphireBlue12, teamImage: sapphireBlue12Team }
   ]
 };
 
@@ -169,14 +200,23 @@ export default function NertzScorekeeper() {
   const [tempInput, setTempInput] = useState('');
   const [countdownNumber, setCountdownNumber] = useState(3);
   
-  // Music state
-  const [volume] = useState(70); // Fixed volume, no UI controls
+  // Audio refs
   const gameMusicRef = useRef<HTMLAudioElement | null>(null);
+  const nertzSoundRef = useRef<HTMLAudioElement | null>(null);
 
   // Exit button state
   const [exitHoldProgress, setExitHoldProgress] = useState(0);
   const exitHoldTimerRef = useRef<number | null>(null);
   const exitHoldStartTimeRef = useRef<number | null>(null);
+
+  // Preload NERTZ sound effect for instant playback
+  useEffect(() => {
+    nertzSoundRef.current = new Audio(nertzSoundEffect);
+    nertzSoundRef.current.preload = 'auto';
+    nertzSoundRef.current.volume = 0.4;
+    // Load the audio file
+    nertzSoundRef.current.load();
+  }, []);
 
   // Preload number images aggressively
   useEffect(() => {
@@ -195,7 +235,7 @@ export default function NertzScorekeeper() {
       if (!gameMusicRef.current) {
         gameMusicRef.current = new Audio(gameMusic);
         gameMusicRef.current.loop = true;
-        gameMusicRef.current.volume = volume / 100;
+        gameMusicRef.current.volume = 0.3;
       }
       
       // Play music (handle mobile autoplay restrictions)
@@ -218,14 +258,16 @@ export default function NertzScorekeeper() {
         gameMusicRef.current.currentTime = 0;
       }
     };
-  }, [gameState, volume]);
+  }, [gameState]);
 
-  // Update game music volume when it changes
+  // Play game end audio when results screen appears
   useEffect(() => {
-    if (gameMusicRef.current) {
-      gameMusicRef.current.volume = volume / 100;
+    if (gameState === 'results') {
+      const endAudio = new Audio(gameEndAudio);
+      endAudio.volume = 0.4;
+      endAudio.play().catch(err => console.log('Game end audio play prevented:', err));
     }
-  }, [volume]);
+  }, [gameState]);
 
   const availableColors = DECK_COLORS[deckType];
   const maxTeams = deckType === '8 pack' ? 8 : 12;
@@ -250,6 +292,7 @@ export default function NertzScorekeeper() {
         name: cardColor.id.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
         color: cardColor.color,
         colorImage: cardColor.image,
+        teamImage: cardColor.teamImage,
         score: 0,
         cardsInHand: 0,
         cardsInPile: 0
@@ -261,7 +304,7 @@ export default function NertzScorekeeper() {
     
     // Play countdown audio
     const audio = new Audio(countdownAudio);
-    audio.volume = volume / 100;
+    audio.volume = 0.4;
     audio.play().catch(err => console.log('Countdown audio play prevented:', err));
   };
 
@@ -342,7 +385,7 @@ export default function NertzScorekeeper() {
     
     // Play countdown audio
     const audio = new Audio(countdownAudio);
-    audio.volume = volume / 100;
+    audio.volume = 0.4;
     audio.play().catch(err => console.log('Countdown audio play prevented:', err));
   };
 
@@ -354,6 +397,20 @@ export default function NertzScorekeeper() {
   };
 
   const sortedTeams = [...teams].sort((a, b) => b.score - a.score);
+
+  // Play button click sound
+  const playButtonClick = () => {
+    const clickSound = new Audio(buttonClickAudio);
+    clickSound.volume = 0.3;
+    clickSound.play().catch(err => console.log('Button click sound prevented:', err));
+  };
+
+  // Play card selection sound
+  const playCardSelection = () => {
+    const cardSound = new Audio(cardSelectionAudio);
+    cardSound.volume = 0.3;
+    cardSound.play().catch(err => console.log('Card selection sound prevented:', err));
+  };
 
   // Exit button handlers
   const handleExitMouseDown = () => {
@@ -390,6 +447,7 @@ export default function NertzScorekeeper() {
 
   // Numpad handlers
   const handleNumpadPress = (value: string) => {
+    playButtonClick();
     if (value === 'backspace') {
       setTempInput(tempInput.slice(0, -1));
     } else if (value === 'enter') {
@@ -447,7 +505,10 @@ export default function NertzScorekeeper() {
                 <div className="flex justify-between items-center">
                   {/* Back button */}
                   <motion.button
-                    onClick={() => navigate('/')}
+                    onClick={() => {
+                      playButtonClick();
+                      navigate('/');
+                    }}
                     whileHover={{ scale: 1.15, rotate: -5 }}
                     whileTap={{ scale: 0.85 }}
                     className="w-16 h-16 sm:w-20 sm:h-20 bg-transparent p-0 border-0 outline-none focus:outline-none"
@@ -492,7 +553,10 @@ export default function NertzScorekeeper() {
                   transition={{ delay: 0.3, duration: 0.5 }}
                 >
                   <motion.button
-                    onClick={() => setDeckType('8 pack')}
+                    onClick={() => {
+                      playButtonClick();
+                      setDeckType('8 pack');
+                    }}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     className={`px-8 py-2.5 rounded-2xl font-bold text-2xl transition-all ${
@@ -513,7 +577,10 @@ export default function NertzScorekeeper() {
                     8 PACK
                   </motion.button>
                   <motion.button
-                    onClick={() => setDeckType('12 pack')}
+                    onClick={() => {
+                      playButtonClick();
+                      setDeckType('12 pack');
+                    }}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     className={`px-8 py-2.5 rounded-2xl font-bold text-2xl transition-all ${
@@ -548,7 +615,10 @@ export default function NertzScorekeeper() {
                     return (
                       <motion.button
                         key={cardColor.id}
-                        onClick={() => toggleColorSelection(cardColor)}
+                        onClick={() => {
+                          playCardSelection();
+                          toggleColorSelection(cardColor);
+                        }}
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                         initial={{ opacity: 0, scale: 0.8 }}
@@ -557,9 +627,9 @@ export default function NertzScorekeeper() {
                         className="relative rounded-lg overflow-hidden"
                         style={{
                           aspectRatio: '730/1048',
-                          border: isSelected ? '3px solid #FFD700' : '2px solid transparent',
+                          border: isSelected ? '5px solid #22c55e' : '2px solid transparent',
                           boxShadow: isSelected 
-                            ? '0 0 15px rgba(255, 215, 0, 0.6), 0 4px 8px rgba(0,0,0,0.3)' 
+                            ? '0 0 20px rgba(34, 197, 94, 0.7), 0 4px 8px rgba(0,0,0,0.3)' 
                             : '0 2px 4px rgba(0,0,0,0.2)',
                           opacity: isSelected ? 1 : 0.7,
                           transform: isSelected ? 'scale(1)' : 'scale(0.95)'
@@ -574,9 +644,9 @@ export default function NertzScorekeeper() {
                           <motion.div
                             initial={{ scale: 0 }}
                             animate={{ scale: 1 }}
-                            className={`absolute ${deckType === '8 pack' ? 'top-1.5 right-1.5 w-6 h-6' : 'top-1 right-1 w-5 h-5'} bg-yellow-400 rounded-full flex items-center justify-center shadow-lg`}
+                            className={`absolute ${deckType === '8 pack' ? 'top-1.5 right-1.5 w-12 h-12' : 'top-1 right-1 w-10 h-10'} bg-green-500 rounded-full flex items-center justify-center shadow-lg`}
                           >
-                            <span className={`text-black ${deckType === '8 pack' ? 'text-sm' : 'text-xs'} font-black`}>✓</span>
+                            <span className={`text-white ${deckType === '8 pack' ? 'text-2xl' : 'text-xl'} font-black`}>✓</span>
                           </motion.div>
                         )}
                       </motion.button>
@@ -588,7 +658,10 @@ export default function NertzScorekeeper() {
                 <motion.button
                   whileHover={selectedColors.length >= 2 ? { scale: 1.1, y: -5 } : {}}
                   whileTap={selectedColors.length >= 2 ? { scale: 0.95 } : {}}
-                  onClick={startGameWithSelectedColors}
+                  onClick={() => {
+                    playButtonClick();
+                    startGameWithSelectedColors();
+                  }}
                   disabled={selectedColors.length < 2}
                   initial={{ y: 20, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
@@ -681,10 +754,19 @@ export default function NertzScorekeeper() {
             >
               <motion.button
                 onClick={() => {
-                  // Play NERTZ sound effect
-                  const nertzSound = new Audio(nertzSoundEffect);
-                  nertzSound.volume = volume / 100;
-                  nertzSound.play().catch(err => console.log('NERTZ sound effect play prevented:', err));
+                  // Play NERTZ sound effect immediately
+                  if (nertzSoundRef.current) {
+                    // Reset to start if already playing
+                    nertzSoundRef.current.currentTime = 0;
+                    nertzSoundRef.current.volume = 0.4;
+                    // Play immediately - this is preloaded so it should be instant
+                    nertzSoundRef.current.play().catch(err => console.log('NERTZ sound effect play prevented:', err));
+                  }
+                  
+                  // Stop game music immediately when NERTZ is clicked
+                  if (gameMusicRef.current) {
+                    gameMusicRef.current.pause();
+                  }
                   
                   // End the round
                   setGameState('roundEnd');
@@ -713,7 +795,7 @@ export default function NertzScorekeeper() {
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0 }}
-              className="min-h-screen flex flex-col items-center justify-center text-center"
+              className="min-h-screen flex flex-col items-center justify-center text-center px-4"
             >
               <h2 
                 className="text-4xl font-bold mb-8"
@@ -725,20 +807,24 @@ export default function NertzScorekeeper() {
                 Who won this round?
               </h2>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-6 max-w-2xl">
                 {teams.map((team, i) => (
                   <motion.button
                     key={i}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    onClick={() => selectWinner(i)}
-                    className="p-8 rounded-3xl shadow-xl text-white text-2xl font-black"
-                    style={{ 
-                      backgroundColor: team.color,
-                      fontFamily: "'Comic Neue', 'Comic Sans MS', cursive"
+                    onClick={() => {
+                      playButtonClick();
+                      selectWinner(i);
                     }}
+                    className="p-0 m-0 border-0 bg-transparent"
                   >
-                    {team.name}
+                    <img 
+                      src={team.teamImage} 
+                      alt={team.name}
+                      className="w-full h-auto object-contain rounded-2xl shadow-2xl"
+                      style={{ filter: 'drop-shadow(0 8px 16px rgba(0,0,0,0.3))' }}
+                    />
                   </motion.button>
                 ))}
               </div>
@@ -751,27 +837,76 @@ export default function NertzScorekeeper() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
-              className="min-h-screen flex flex-col items-center justify-center text-center px-4"
+              className="min-h-screen flex flex-col items-center justify-center text-center px-4 relative"
             >
-              <div 
-                className="w-24 h-32 mx-auto mb-6 rounded-2xl shadow-2xl overflow-hidden"
+              {/* Exit Button */}
+              <motion.button
+                onMouseDown={handleExitMouseDown}
+                onMouseUp={handleExitMouseUp}
+                onMouseLeave={handleExitMouseUp}
+                onTouchStart={handleExitMouseDown}
+                onTouchEnd={handleExitMouseUp}
+                className="absolute top-4 left-4 sm:top-6 sm:left-6 z-10"
+                style={{
+                  width: 80,
+                  height: 80,
+                  borderRadius: '50%',
+                  overflow: 'hidden',
+                  background: 'rgba(0,0,0,0.5)',
+                  border: '3px solid rgba(255,255,255,0.8)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer'
+                }}
               >
-                <img
-                  src={teams[currentInputTeam].colorImage}
-                  alt={teams[currentInputTeam].name}
-                  className="w-full h-full object-cover"
-                />
-              </div>
+                {/* X icon (visible when not holding) */}
+                {exitHoldProgress === 0 && (
+                  <div style={{ 
+                    position: 'absolute',
+                    fontSize: '36px',
+                    fontWeight: 'bold',
+                    color: 'white',
+                    zIndex: 2
+                  }}>
+                    ✕
+                  </div>
+                )}
+                
+                {/* Progress pie slice */}
+                <svg width="80" height="80" viewBox="0 0 80 80" style={{ transform: 'rotate(-90deg)' }}>
+                  <path
+                    d={`M 40 40 L 40 0 A 40 40 0 ${exitHoldProgress > 0.5 ? 1 : 0} 1 ${
+                      40 + 40 * Math.sin((exitHoldProgress * 2 * Math.PI))
+                    } ${
+                      40 - 40 * Math.cos((exitHoldProgress * 2 * Math.PI))
+                    } Z`}
+                    fill="rgba(255,255,255,0.8)"
+                  />
+                </svg>
+              </motion.button>
 
               <h2 
-                className="text-3xl font-bold mb-4"
+                className="text-5xl font-black"
                 style={{ 
-                  color: '#333',
-                  fontFamily: "'Comic Neue', 'Comic Sans MS', cursive"
+                  color: '#ffffff',
+                  fontFamily: "'Comic Neue', 'Comic Sans MS', cursive",
+                  textShadow: '2px 2px 4px rgba(0,0,0,0.5)'
                 }}
               >
                 {teams[currentInputTeam].name}
               </h2>
+
+              <div 
+                className="w-32 h-auto mx-auto py-6"
+              >
+                <img
+                  src={teams[currentInputTeam].teamImage}
+                  alt={teams[currentInputTeam].name}
+                  className="w-full h-auto object-contain rounded-2xl shadow-2xl"
+                  style={{ filter: 'drop-shadow(0 8px 16px rgba(0,0,0,0.3))' }}
+                />
+              </div>
               
               <img 
                 src={cardHandBanner} 
@@ -781,21 +916,44 @@ export default function NertzScorekeeper() {
 
               {/* Input Display - iOS Calculator style */}
               <div
-                className="w-full max-w-md px-8 py-6 text-6xl sm:text-7xl font-black text-center rounded-3xl shadow-2xl mb-4 border-4 bg-white"
+                className="w-full max-w-md px-8 text-7xl sm:text-8xl font-black text-center rounded-3xl mb-4 relative overflow-hidden"
                 style={{ 
-                  borderColor: teams[currentInputTeam].color,
                   fontFamily: "'Comic Neue', 'Comic Sans MS', cursive",
                   color: '#000000',
-                  minHeight: '120px',
+                  minHeight: '140px',
+                  height: '140px',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center'
+                  justifyContent: 'center',
+                  backgroundImage: `url(${scorePlaque})`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                  backgroundRepeat: 'no-repeat',
+                  boxShadow: `0 8px 20px rgba(0,0,0,0.3)`,
+                  lineHeight: '1'
                 }}
               >
-                {tempInput || '0'}
+                {/* Inner border with offset */}
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: '6px',
+                    right: '12px',
+                    bottom: '15px',
+                    left: '11px',
+                    border: `6px solid ${teams[currentInputTeam].color}`,
+                    borderRadius: '14px',
+                    pointerEvents: 'none',
+                    zIndex: 1
+                  }}
+                />
+                {/* Text content */}
+                <div style={{ position: 'relative', zIndex: 2 }}>
+                  {tempInput || '0'}
+                </div>
               </div>
 
-              <p className="text-lg mb-6 font-bold" style={{ color: '#666', fontFamily: "'Comic Neue', 'Comic Sans MS', cursive" }}>
+              <p className="text-2xl font-black" style={{ color: '#666', fontFamily: "'Comic Neue', 'Comic Sans MS', cursive" }}>
                 Each card = -2 points
               </p>
 
@@ -816,7 +974,10 @@ export default function NertzScorekeeper() {
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  onClick={submitHandCards}
+                  onClick={() => {
+                    playButtonClick();
+                    submitHandCards();
+                  }}
                   className="px-12 py-4 rounded-full text-2xl font-black text-white shadow-2xl"
                   style={{ 
                     background: `linear-gradient(135deg, ${BICYCLE_ORANGE} 0%, #d65a0f 100%)`,
@@ -891,27 +1052,76 @@ export default function NertzScorekeeper() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
-              className="min-h-screen flex flex-col items-center justify-center text-center px-4"
+              className="min-h-screen flex flex-col items-center justify-center text-center px-4 relative"
             >
-              <div 
-                className="w-24 h-32 mx-auto mb-6 rounded-2xl shadow-2xl overflow-hidden"
+              {/* Exit Button */}
+              <motion.button
+                onMouseDown={handleExitMouseDown}
+                onMouseUp={handleExitMouseUp}
+                onMouseLeave={handleExitMouseUp}
+                onTouchStart={handleExitMouseDown}
+                onTouchEnd={handleExitMouseUp}
+                className="absolute top-4 left-4 sm:top-6 sm:left-6 z-10"
+                style={{
+                  width: 80,
+                  height: 80,
+                  borderRadius: '50%',
+                  overflow: 'hidden',
+                  background: 'rgba(0,0,0,0.5)',
+                  border: '3px solid rgba(255,255,255,0.8)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer'
+                }}
               >
-                <img
-                  src={teams[currentInputTeam].colorImage}
-                  alt={teams[currentInputTeam].name}
-                  className="w-full h-full object-cover"
-                />
-              </div>
+                {/* X icon (visible when not holding) */}
+                {exitHoldProgress === 0 && (
+                  <div style={{ 
+                    position: 'absolute',
+                    fontSize: '36px',
+                    fontWeight: 'bold',
+                    color: 'white',
+                    zIndex: 2
+                  }}>
+                    ✕
+                  </div>
+                )}
+                
+                {/* Progress pie slice */}
+                <svg width="80" height="80" viewBox="0 0 80 80" style={{ transform: 'rotate(-90deg)' }}>
+                  <path
+                    d={`M 40 40 L 40 0 A 40 40 0 ${exitHoldProgress > 0.5 ? 1 : 0} 1 ${
+                      40 + 40 * Math.sin((exitHoldProgress * 2 * Math.PI))
+                    } ${
+                      40 - 40 * Math.cos((exitHoldProgress * 2 * Math.PI))
+                    } Z`}
+                    fill="rgba(255,255,255,0.8)"
+                  />
+                </svg>
+              </motion.button>
 
               <h2 
-                className="text-3xl font-bold mb-4"
+                className="text-5xl font-black"
                 style={{ 
-                  color: '#333',
-                  fontFamily: "'Comic Neue', 'Comic Sans MS', cursive"
+                  color: '#ffffff',
+                  fontFamily: "'Comic Neue', 'Comic Sans MS', cursive",
+                  textShadow: '2px 2px 4px rgba(0,0,0,0.5)'
                 }}
               >
                 {teams[currentInputTeam].name}
               </h2>
+
+              <div 
+                className="w-32 h-auto mx-auto py-6"
+              >
+                <img
+                  src={teams[currentInputTeam].teamImage}
+                  alt={teams[currentInputTeam].name}
+                  className="w-full h-auto object-contain rounded-2xl shadow-2xl"
+                  style={{ filter: 'drop-shadow(0 8px 16px rgba(0,0,0,0.3))' }}
+                />
+              </div>
               
               <img 
                 src={cardMiddleBanner} 
@@ -921,21 +1131,44 @@ export default function NertzScorekeeper() {
 
               {/* Input Display - iOS Calculator style */}
               <div
-                className="w-full max-w-md px-8 py-6 text-6xl sm:text-7xl font-black text-center rounded-3xl shadow-2xl mb-4 border-4 bg-white"
+                className="w-full max-w-md px-8 text-7xl sm:text-8xl font-black text-center rounded-3xl mb-4 relative overflow-hidden"
                 style={{ 
-                  borderColor: teams[currentInputTeam].color,
                   fontFamily: "'Comic Neue', 'Comic Sans MS', cursive",
                   color: '#000000',
-                  minHeight: '120px',
+                  minHeight: '140px',
+                  height: '140px',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center'
+                  justifyContent: 'center',
+                  backgroundImage: `url(${scorePlaque})`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                  backgroundRepeat: 'no-repeat',
+                  boxShadow: `0 8px 20px rgba(0,0,0,0.3)`,
+                  lineHeight: '1'
                 }}
               >
-                {tempInput || '0'}
+                {/* Inner border with offset */}
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: '6px',
+                    right: '12px',
+                    bottom: '15px',
+                    left: '11px',
+                    border: `6px solid ${teams[currentInputTeam].color}`,
+                    borderRadius: '14px',
+                    pointerEvents: 'none',
+                    zIndex: 1
+                  }}
+                />
+                {/* Text content */}
+                <div style={{ position: 'relative', zIndex: 2 }}>
+                  {tempInput || '0'}
+                </div>
               </div>
 
-              <p className="text-lg mb-6 font-bold" style={{ color: '#666', fontFamily: "'Comic Neue', 'Comic Sans MS', cursive" }}>
+              <p className="text-2xl font-black" style={{ color: '#666', fontFamily: "'Comic Neue', 'Comic Sans MS', cursive" }}>
                 Each card = +1 point
               </p>
 
@@ -956,7 +1189,10 @@ export default function NertzScorekeeper() {
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  onClick={submitPileCards}
+                  onClick={() => {
+                    playButtonClick();
+                    submitPileCards();
+                  }}
                   className="px-12 py-4 rounded-full text-2xl font-black text-white shadow-2xl"
                   style={{ 
                     background: `linear-gradient(135deg, ${BICYCLE_ORANGE} 0%, #d65a0f 100%)`,
@@ -1033,79 +1269,50 @@ export default function NertzScorekeeper() {
               exit={{ opacity: 0 }}
               className="min-h-screen flex flex-col items-center justify-center text-center px-4 relative"
             >
-              {/* Exit Button - Top Left */}
+              {/* Exit Button */}
               <motion.button
                 onMouseDown={handleExitMouseDown}
                 onMouseUp={handleExitMouseUp}
                 onMouseLeave={handleExitMouseUp}
                 onTouchStart={handleExitMouseDown}
                 onTouchEnd={handleExitMouseUp}
-                onTouchCancel={handleExitMouseUp}
                 className="absolute top-4 left-4 sm:top-6 sm:left-6 z-10"
                 style={{
-                  width: '80px',
-                  height: '80px',
-                  background: 'transparent',
-                  border: 'none',
-                  outline: 'none',
-                  padding: 0,
-                  cursor: 'pointer',
+                  width: 80,
+                  height: 80,
+                  borderRadius: '50%',
                   overflow: 'hidden',
-                  borderRadius: '50%'
+                  background: 'rgba(0,0,0,0.5)',
+                  border: '3px solid rgba(255,255,255,0.8)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer'
                 }}
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.3 }}
               >
-                <svg width="80" height="80" viewBox="0 0 80 80">
-                  {/* Background circle */}
-                  <circle
-                    cx="40"
-                    cy="40"
-                    r="38"
-                    fill="rgba(255, 255, 255, 0.9)"
-                    stroke="rgba(255, 255, 255, 0.5)"
-                    strokeWidth="2"
+                {/* X icon (visible when not holding) */}
+                {exitHoldProgress === 0 && (
+                  <div style={{ 
+                    position: 'absolute',
+                    fontSize: '36px',
+                    fontWeight: 'bold',
+                    color: 'white',
+                    zIndex: 2
+                  }}>
+                    ✕
+                  </div>
+                )}
+                
+                {/* Progress pie slice */}
+                <svg width="80" height="80" viewBox="0 0 80 80" style={{ transform: 'rotate(-90deg)' }}>
+                  <path
+                    d={`M 40 40 L 40 0 A 40 40 0 ${exitHoldProgress > 0.5 ? 1 : 0} 1 ${
+                      40 + 40 * Math.sin((exitHoldProgress * 2 * Math.PI))
+                    } ${
+                      40 - 40 * Math.cos((exitHoldProgress * 2 * Math.PI))
+                    } Z`}
+                    fill="rgba(255,255,255,0.8)"
                   />
-                  
-                  {/* Progress pie slice - uses path for true pie shape */}
-                  {exitHoldProgress > 0 && (
-                    <path
-                      d={`M 40 40 L 40 2 A 38 38 0 ${exitHoldProgress > 0.5 ? 1 : 0} 1 ${
-                        40 + 38 * Math.sin(exitHoldProgress * 2 * Math.PI)
-                      } ${
-                        40 - 38 * Math.cos(exitHoldProgress * 2 * Math.PI)
-                      } Z`}
-                      fill="rgba(241, 120, 33, 0.8)"
-                      style={{
-                        transition: exitHoldProgress === 0 ? 'opacity 0.2s ease-out' : 'none'
-                      }}
-                    />
-                  )}
-                  
-                  {/* X icon - only show when not holding */}
-                  {exitHoldProgress === 0 && (
-                    <g transform="translate(40, 40)">
-                      <line
-                        x1="-14"
-                        y1="-14"
-                        x2="14"
-                        y2="14"
-                        stroke="#333333"
-                        strokeWidth="4"
-                        strokeLinecap="round"
-                      />
-                      <line
-                        x1="-14"
-                        y1="14"
-                        x2="14"
-                        y2="-14"
-                        stroke="#333333"
-                        strokeWidth="4"
-                        strokeLinecap="round"
-                      />
-                    </g>
-                  )}
                 </svg>
               </motion.button>
 
@@ -1118,7 +1325,22 @@ export default function NertzScorekeeper() {
                 Round {currentRound - 1} Complete!
               </motion.h2>
 
-              <div className="bg-white rounded-3xl shadow-2xl p-6 sm:p-8 md:p-10 mb-8 sm:mb-12 max-w-2xl w-full">
+              <div 
+                className="rounded-3xl p-6 sm:p-8 md:p-10 mb-8 sm:mb-12 max-w-2xl w-full border-8"
+                style={{
+                  background: 'linear-gradient(to bottom, #ffffff 0%, #f0f0f0 100%)',
+                  borderColor: BICYCLE_ORANGE,
+                  boxShadow: `
+                    inset 0 4px 8px rgba(255,255,255,0.9),
+                    inset 0 -3px 6px rgba(0,0,0,0.1),
+                    0 3px 0 ${BICYCLE_ORANGE},
+                    0 6px 0 #d65a0f,
+                    0 9px 0 #b84a0a,
+                    0 12px 0 #9a3d08,
+                    0 15px 30px rgba(0,0,0,0.4)
+                  `
+                }}
+              >
                 <h3 
                   className="text-2xl sm:text-3xl md:text-4xl font-bold mb-6 sm:mb-8"
                   style={{ 
@@ -1136,8 +1358,20 @@ export default function NertzScorekeeper() {
                       initial={{ x: -50, opacity: 0 }}
                       animate={{ x: 0, opacity: 1 }}
                       transition={{ delay: i * 0.1 }}
-                      className="flex items-center justify-between p-4 rounded-2xl shadow-lg"
-                      style={{ backgroundColor: team.color }}
+                      className="flex items-center justify-between p-4 rounded-2xl border-6"
+                      style={{ 
+                        backgroundColor: team.color,
+                        borderColor: team.color,
+                        background: `linear-gradient(to bottom, ${team.color} 0%, ${team.color}dd 100%)`,
+                        boxShadow: `
+                          inset 0 2px 4px rgba(255,255,255,0.3),
+                          inset 0 -2px 3px rgba(0,0,0,0.2),
+                          0 2px 0 rgba(0,0,0,0.3),
+                          0 4px 0 rgba(0,0,0,0.25),
+                          0 6px 0 rgba(0,0,0,0.2),
+                          0 8px 15px rgba(0,0,0,0.4)
+                        `
+                      }}
                     >
                       <div className="flex items-center gap-4">
                         <div 
@@ -1165,7 +1399,10 @@ export default function NertzScorekeeper() {
               </div>
 
               <motion.button
-                onClick={startNextRound}
+                onClick={() => {
+                  playButtonClick();
+                  startNextRound();
+                }}
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
                 className="h-20 sm:h-24 md:h-28 lg:h-36 bg-transparent p-0 border-0 outline-none focus:outline-none"
@@ -1174,7 +1411,7 @@ export default function NertzScorekeeper() {
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.5, duration: 0.5 }}
               >
-                <img src={startGameButton} alt="Start Next Round" className="h-full object-contain" />
+                <img src={continueButton} alt="Continue" className="h-full object-contain" />
               </motion.button>
             </motion.div>
           )}
@@ -1244,7 +1481,10 @@ export default function NertzScorekeeper() {
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                onClick={resetGame}
+                onClick={() => {
+                  playButtonClick();
+                  resetGame();
+                }}
                 className="px-12 py-4 rounded-full text-2xl font-black text-white shadow-2xl"
                 style={{ 
                   background: `linear-gradient(135deg, ${BICYCLE_ORANGE} 0%, #d65a0f 100%)`,
