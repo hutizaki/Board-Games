@@ -32,3 +32,15 @@
   box-shadow: -4px 4px 12px rgba(0, 0, 0, 0.5); /* Simplified shadow for better mobile rendering */
 }
 
+/* Game History header: override global h1 3.2em; 40px at narrow breakpoint */
+.nertz-history-title {
+  font-size: 40px;
+  line-height: 1.1;
+}
+@media (min-width: 640px) {
+  .nertz-history-title {
+    font-size: 1.25rem; /* 20px, matches text-xl */
+  }
+}
+
+

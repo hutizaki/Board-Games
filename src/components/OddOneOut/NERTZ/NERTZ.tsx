@@ -2,6 +2,13 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import './NERTZ.css';
+import {
+  getHistory,
+  appendToHistory,
+  isSnapshotLoadable,
+  type NertzHistoryEntry,
+  type NertzSnapshot,
+} from './nertzHistory';
 
 // Import background
 import nertzBackground from '../../../assets/Nertz/nertzBackground.png';
@@ -220,6 +227,21 @@ export default function NertzScorekeeper() {
   const exitHoldTimerRef = useRef<number | null>(null);
   const exitHoldStartTimeRef = useRef<number | null>(null);
 
+  // History: show history list instead of home content; viewingEntry = completed game detail
+  const [showHistory, setShowHistory] = useState(false);
+  const [viewingEntry, setViewingEntry] = useState<NertzHistoryEntry | null>(null);
+  const savedResultsRef = useRef(false);
+
+  // Narrow viewport: shift bottom-right ace right ~15px (used for responsive ace position only)
+  const [isNarrowViewport, setIsNarrowViewport] = useState(false);
+  useEffect(() => {
+    const m = window.matchMedia('(max-width: 640px)');
+    const handler = () => setIsNarrowViewport(m.matches);
+    setIsNarrowViewport(m.matches);
+    m.addEventListener('change', handler);
+    return () => m.removeEventListener('change', handler);
+  }, []);
+
   // Preload NERTZ sound effect for instant playback
   useEffect(() => {
     nertzSoundRef.current = new Audio(nertzSoundEffect);
@@ -279,6 +301,20 @@ export default function NertzScorekeeper() {
       endAudio.play().catch(err => console.log('Game end audio play prevented:', err));
     }
   }, [gameState]);
+
+  // Save completed game to history once when entering results
+  useEffect(() => {
+    if (gameState !== 'results' || teams.length === 0 || savedResultsRef.current) return;
+    const snapshot = buildSnapshot();
+    const entry: NertzHistoryEntry = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+      savedAt: Date.now(),
+      completed: true,
+      snapshot,
+    };
+    appendToHistory(entry);
+    savedResultsRef.current = true;
+  }, [gameState, teams.length]);
 
   const availableColors = DECK_COLORS[deckType];
   const maxTeams = deckType === '8 pack' ? 8 : 12;
@@ -426,7 +462,25 @@ export default function NertzScorekeeper() {
     setTempInput('');
     setHandScoresTemp([]);
     setPileScoresTemp([]);
+    setShowHistory(false);
+    savedResultsRef.current = false;
   };
+
+  function buildSnapshot(): NertzSnapshot {
+    return {
+      gameState,
+      deckType,
+      teams: [...teams],
+      selectedColors: [...selectedColors],
+      currentRound,
+      roundWinner,
+      currentInputTeam,
+      inputPhase,
+      tempInput,
+      handScoresTemp: [...handScoresTemp],
+      pileScoresTemp: [...pileScoresTemp],
+    };
+  }
 
   const handleReturnFromHandInput = () => {
     playButtonClick();
@@ -458,6 +512,24 @@ export default function NertzScorekeeper() {
     setInputPhase('pile');
     setCurrentInputTeam(0);
     setTempInput(String(pile(0)));
+  };
+
+  const loadGame = (entry: NertzHistoryEntry) => {
+    if (entry.completed || !isSnapshotLoadable(entry)) return;
+    const s = entry.snapshot;
+    setGameState(s.gameState);
+    setDeckType(s.deckType);
+    setTeams(s.teams.map(t => ({ ...t })));
+    setSelectedColors([...s.selectedColors]);
+    setCurrentRound(s.currentRound);
+    setRoundWinner(s.roundWinner);
+    setCurrentInputTeam(s.currentInputTeam);
+    setInputPhase(s.inputPhase);
+    setTempInput(s.tempInput ?? '');
+    setHandScoresTemp([...(s.handScoresTemp ?? [])]);
+    setPileScoresTemp([...(s.pileScoresTemp ?? [])]);
+    if (s.gameState === 'countdown') setCountdownNumber(3);
+    setShowHistory(false);
   };
 
   const sortedTeams = [...teams].sort((a, b) => b.score - a.score);
@@ -506,6 +578,16 @@ export default function NertzScorekeeper() {
     }
     exitHoldStartTimeRef.current = null;
     setExitHoldProgress(0);
+    if (gameState !== 'home' && gameState !== 'results' && teams.length > 0) {
+      const snapshot = buildSnapshot();
+      const entry: NertzHistoryEntry = {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+        savedAt: Date.now(),
+        completed: false,
+        snapshot,
+      };
+      appendToHistory(entry);
+    }
     resetGame();
   };
 
@@ -573,41 +655,112 @@ export default function NertzScorekeeper() {
               className="h-full flex flex-col overflow-y-auto overflow-x-hidden"
             >
               {/* Top header with back button and logo */}
-              <div className="px-4 pt-4 mb-6">
+              <div className="px-4 pt-8 mb-6">
                 <div className="flex justify-between items-center">
-                  {/* Back button */}
+                  {/* Back button: from history go to deck selection, else go to app home */}
                   <motion.button
                     onClick={() => {
                       playButtonClick();
-                      navigate('/');
+                      if (showHistory) setShowHistory(false);
+                      else navigate('/');
                     }}
                     whileHover={{ scale: 1.15, rotate: -5 }}
                     whileTap={{ scale: 0.85 }}
                     className="w-16 h-16 sm:w-20 sm:h-20 bg-transparent p-0 border-0 outline-none focus:outline-none"
                     style={{ background: 'transparent', border: 'none', outline: 'none', padding: '0 !important', filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.3))' }}
                   >
-                    <img src={arrowIcon} alt="Back to Menu" className="w-full h-full object-contain" />
+                    <img src={arrowIcon} alt={showHistory ? 'Back' : 'Back to Menu'} className="w-full h-full object-contain" />
                   </motion.button>
 
-                  {/* Logo */}
-                  <motion.img 
-                    src={nertzLogo} 
-                    alt="NERTZ" 
-                    className="h-20 sm:h-24 md:h-28 object-contain"
-                    initial={{ y: -20, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ duration: 0.6, type: 'spring', bounce: 0.4 }}
-                    style={{ filter: 'drop-shadow(0 8px 16px rgba(0,0,0,0.4))' }}
-                  />
+                  {/* Logo or History title */}
+                  {showHistory ? (
+                    <h1
+                      className="nertz-history-title flex-1 text-center font-black text-white whitespace-nowrap"
+                      style={{ fontFamily: "'Comic Neue', 'Comic Sans MS', cursive", textShadow: '2px 2px 4px rgba(0,0,0,0.5)' }}
+                    >
+                      Game History
+                    </h1>
+                  ) : (
+                    <motion.img 
+                      src={nertzLogo} 
+                      alt="NERTZ" 
+                      className="h-20 sm:h-24 md:h-28 object-contain"
+                      initial={{ y: -20, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      transition={{ duration: 0.6, type: 'spring', bounce: 0.4 }}
+                      style={{ filter: 'drop-shadow(0 8px 16px rgba(0,0,0,0.4))' }}
+                    />
+                  )}
 
                   {/* Spacer for symmetry */}
                   <div className="w-16 h-16 sm:w-20 sm:h-20"></div>
                 </div>
               </div>
 
-              {/* Main content centered */}
-              <div className="flex-1 flex flex-col items-center justify-top text-center px-4 gap-4 relative">
-
+              {/* Main content: history list or deck selection; gap above/below halved on narrow */}
+              <div className="flex-1 flex flex-col items-center justify-top text-center px-4 gap-2 sm:gap-4 relative">
+                {showHistory ? (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="w-full max-w-2xl flex flex-col gap-3 py-4 overflow-y-auto rounded-2xl px-4"
+                    style={{ background: '#f7ebe1' }}
+                  >
+                    {getHistory().length === 0 ? (
+                      <p className="text-xl font-bold text-gray-800" style={{ fontFamily: "'Comic Neue', 'Comic Sans MS', cursive" }}>
+                        No games yet. Start one!
+                      </p>
+                    ) : (
+                      getHistory().map((entry) => (
+                        <motion.div
+                          key={entry.id}
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          className="rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-left"
+                          style={{
+                            background: '#f7ebe1',
+                            border: '2px solid #d4c4b0',
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                          }}
+                        >
+                          <div className="flex-1 min-w-0">
+                            <p className="text-gray-800 font-bold text-lg" style={{ fontFamily: "'Comic Neue', 'Comic Sans MS', cursive" }}>
+                              {new Date(entry.savedAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
+                            </p>
+                            <p className="text-gray-600 text-sm mt-0.5" style={{ fontFamily: "'Comic Neue', 'Comic Sans MS', cursive" }}>
+                              {entry.completed ? 'Completed' : 'Incomplete'} · Round {entry.snapshot.currentRound} · {entry.snapshot.teams.length} teams
+                            </p>
+                          </div>
+                          <div className="flex gap-2 flex-shrink-0">
+                            {!entry.completed && isSnapshotLoadable(entry) && (
+                              <motion.button
+                                onClick={() => { playButtonClick(); loadGame(entry); }}
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                className="px-4 py-2 rounded-xl font-bold text-white text-sm"
+                                style={{ background: BICYCLE_ORANGE, fontFamily: "'Comic Neue', 'Comic Sans MS', cursive" }}
+                              >
+                                Load
+                              </motion.button>
+                            )}
+                            {entry.completed && (
+                              <motion.button
+                                onClick={() => { playButtonClick(); setViewingEntry(entry); }}
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                className="px-4 py-2 rounded-xl font-bold text-gray-800 text-sm border-2 border-gray-500"
+                                style={{ background: '#f7ebe1', fontFamily: "'Comic Neue', 'Comic Sans MS', cursive" }}
+                              >
+                                View
+                              </motion.button>
+                            )}
+                          </div>
+                        </motion.div>
+                      ))
+                    )}
+                  </motion.div>
+                ) : (
+                  <>
                 <motion.img
                   src={deckBanner}
                   alt="Choose Deck Type"
@@ -617,9 +770,9 @@ export default function NertzScorekeeper() {
                   transition={{ delay: 0.2, duration: 0.5, type: 'spring', bounce: 0.5 }}
                 />
 
-                {/* Deck Type Selection */}
+                {/* Deck Type Selection - smaller below sm (~412px), full size at 640px+ */}
                 <motion.div 
-                  className="flex gap-4 mb-4"
+                  className="flex gap-2 sm:gap-4 mt-6 mb-4"
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.3, duration: 0.5 }}
@@ -631,7 +784,7 @@ export default function NertzScorekeeper() {
                     }}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    className={`px-8 py-2.5 rounded-2xl font-bold text-2xl transition-all ${
+                    className={`px-4 py-1.5 sm:px-8 sm:py-2.5 rounded-xl sm:rounded-2xl font-bold text-base sm:text-2xl transition-all ${
                       deckType === '8 pack'
                         ? 'bg-gradient-to-b from-orange-400 to-red-500 text-white scale-105'
                         : 'bg-gradient-to-b from-white to-gray-100 text-gray-700'
@@ -655,7 +808,7 @@ export default function NertzScorekeeper() {
                     }}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    className={`px-8 py-2.5 rounded-2xl font-bold text-2xl transition-all ${
+                    className={`px-4 py-1.5 sm:px-8 sm:py-2.5 rounded-xl sm:rounded-2xl font-bold text-base sm:text-2xl transition-all ${
                       deckType === '12 pack'
                         ? 'bg-gradient-to-b from-orange-400 to-red-500 text-white scale-105'
                         : 'bg-gradient-to-b from-white to-gray-100 text-gray-700'
@@ -769,20 +922,77 @@ export default function NertzScorekeeper() {
                   }}
                 />
 
-                {/* Ace of Hearts - Bottom Right (Fixed to screen) */}
+                {/* Ace of Hearts - Bottom Right (Fixed to screen); shifted right on narrow viewports */}
                 <motion.img
                   src={aceRed}
                   alt="Ace of Hearts"
                   className="fixed right-0 bottom-0 h-[30vh] w-auto object-contain pointer-events-none z-10"
-                  initial={{ x: 53, y: 262.5, opacity: 0, rotate: 15 }}
-                  animate={{ x: 12, y: 175, opacity: 1, rotate: 15 }}
+                  initial={{ x: 78, y: 262.5, opacity: 0, rotate: 15 }}
+                  animate={{ x: isNarrowViewport ? 53 : 37, y: 175, opacity: 1, rotate: 15 }}
                   transition={{ delay: 0.6, duration: 0.6, type: 'spring', bounce: 0.4 }}
                   style={{ 
                     filter: 'drop-shadow(0 8px 16px rgba(0,0,0,0.4))',
                     transformOrigin: 'bottom right'
                   }}
                 />
+
+                {/* History button */}
+                <motion.button
+                  onClick={() => { playButtonClick(); setShowHistory(true); }}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="mt-4 px-6 py-2 rounded-xl font-bold text-gray-800 border-2 border-[#d4c4b0] text-lg"
+                  style={{ background: '#f7ebe1', fontFamily: "'Comic Neue', 'Comic Sans MS', cursive" }}
+                >
+                  History
+                </motion.button>
+                  </>
+                )}
               </div>
+            </motion.div>
+          )}
+
+          {/* View completed game overlay (when viewingEntry is set) */}
+          {gameState === 'home' && viewingEntry != null && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60"
+              onClick={() => setViewingEntry(null)}
+            >
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.9, opacity: 0 }}
+                onClick={e => e.stopPropagation()}
+                className="rounded-3xl shadow-2xl p-6 max-w-md w-full max-h-[80vh] overflow-y-auto"
+                style={{ background: '#f7ebe1', fontFamily: "'Comic Neue', 'Comic Sans MS', cursive" }}
+              >
+                <h3 className="text-2xl font-black text-gray-800 mb-2">Final Standings</h3>
+                <p className="text-sm text-gray-600 mb-4">
+                  {new Date(viewingEntry.savedAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
+                </p>
+                <ul className="space-y-2">
+                  {[...viewingEntry.snapshot.teams]
+                    .sort((a, b) => b.score - a.score)
+                    .map((team, i) => (
+                      <li key={team.name} className="flex justify-between items-center py-2 border-b border-[#d4c4b0] last:border-0">
+                        <span className="font-bold text-gray-700">#{i + 1} {team.name}</span>
+                        <span className="font-black" style={{ color: team.color }}>{team.score}</span>
+                      </li>
+                    ))}
+                </ul>
+                <motion.button
+                  onClick={() => { playButtonClick(); setViewingEntry(null); }}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="mt-6 w-full py-3 rounded-xl font-bold text-white"
+                  style={{ background: BICYCLE_ORANGE }}
+                >
+                  Close
+                </motion.button>
+              </motion.div>
             </motion.div>
           )}
 
@@ -983,11 +1193,10 @@ export default function NertzScorekeeper() {
                 onClick={handleReturnFromHandInput}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className="absolute top-4 right-4 sm:top-6 sm:right-6 z-10 flex items-center justify-center rounded-full bg-white/90 border-2 border-gray-300 shadow-lg"
-                style={{ width: 56, height: 56 }}
+                className="absolute top-4 right-4 sm:top-6 sm:right-6 z-10 w-14 h-14 sm:w-20 sm:h-20 flex items-center justify-center rounded-full bg-white/90 border-2 border-gray-300 shadow-lg"
                 aria-label="Back to change winner"
               >
-                <img src={arrowIcon} alt="Back" className="w-8 h-8 object-contain" />
+                <img src={arrowIcon} alt="Back" className="w-6 h-6 sm:w-8 sm:h-8 object-contain" />
               </motion.button>
 
               <h2 
@@ -1018,17 +1227,12 @@ export default function NertzScorekeeper() {
                 className="w-full max-w-xl h-auto mb-4"
               />
 
-              {/* Input Display - iOS Calculator style */}
+              {/* Input Display - iOS Calculator style; smaller on narrow viewports */}
               <div
-                className="w-full max-w-md px-8 text-7xl sm:text-8xl font-black text-center rounded-3xl mb-4 relative overflow-hidden"
+                className="w-full max-w-xs sm:max-w-md px-4 sm:px-8 text-5xl sm:text-7xl font-black text-center rounded-2xl sm:rounded-3xl mb-4 relative overflow-hidden h-24 min-h-24 sm:h-[140px] sm:min-h-[140px] flex items-center justify-center"
                 style={{ 
                   fontFamily: "'Comic Neue', 'Comic Sans MS', cursive",
                   color: '#000000',
-                  minHeight: '140px',
-                  height: '140px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
                   backgroundImage: `url(${scorePlaque})`,
                   backgroundSize: 'cover',
                   backgroundPosition: 'center',
@@ -1092,8 +1296,8 @@ export default function NertzScorekeeper() {
                 </motion.button>
               </div>
 
-              {/* Mobile/Tablet/iPad: Show numpad */}
-              <div className="xl:hidden grid grid-cols-3 gap-2 w-full max-w-sm mt-4">
+              {/* Mobile/Tablet/iPad: Show numpad; smaller on narrow viewports */}
+              <div className="xl:hidden grid grid-cols-3 gap-1 sm:gap-2 w-full max-w-xs sm:max-w-sm mt-2 sm:mt-4">
                 {/* Numbers 1-9 */}
                 {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
                   <motion.button
@@ -1210,11 +1414,10 @@ export default function NertzScorekeeper() {
                 onClick={handleReturnFromPileInput}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className="absolute top-4 right-4 sm:top-6 sm:right-6 z-10 flex items-center justify-center rounded-full bg-white/90 border-2 border-gray-300 shadow-lg"
-                style={{ width: 56, height: 56 }}
+                className="absolute top-4 right-4 sm:top-6 sm:right-6 z-10 w-14 h-14 sm:w-20 sm:h-20 flex items-center justify-center rounded-full bg-white/90 border-2 border-gray-300 shadow-lg"
                 aria-label="Back to hand scores"
               >
-                <img src={arrowIcon} alt="Back" className="w-8 h-8 object-contain" />
+                <img src={arrowIcon} alt="Back" className="w-6 h-6 sm:w-8 sm:h-8 object-contain" />
               </motion.button>
 
               <h2 
@@ -1245,17 +1448,12 @@ export default function NertzScorekeeper() {
                 className="w-full max-w-xl h-auto mb-4"
               />
 
-              {/* Input Display - iOS Calculator style */}
+              {/* Input Display - iOS Calculator style; smaller on narrow viewports */}
               <div
-                className="w-full max-w-md px-8 text-7xl sm:text-8xl font-black text-center rounded-3xl mb-4 relative overflow-hidden"
+                className="w-full max-w-xs sm:max-w-md px-4 sm:px-8 text-5xl sm:text-7xl font-black text-center rounded-2xl sm:rounded-3xl mb-4 relative overflow-hidden h-24 min-h-24 sm:h-[140px] sm:min-h-[140px] flex items-center justify-center"
                 style={{ 
                   fontFamily: "'Comic Neue', 'Comic Sans MS', cursive",
                   color: '#000000',
-                  minHeight: '140px',
-                  height: '140px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
                   backgroundImage: `url(${scorePlaque})`,
                   backgroundSize: 'cover',
                   backgroundPosition: 'center',
@@ -1319,8 +1517,8 @@ export default function NertzScorekeeper() {
                 </motion.button>
               </div>
 
-              {/* Mobile/Tablet/iPad: Show numpad */}
-              <div className="xl:hidden grid grid-cols-3 gap-2 w-full max-w-sm mt-4">
+              {/* Mobile/Tablet/iPad: Show numpad; smaller on narrow viewports */}
+              <div className="xl:hidden grid grid-cols-3 gap-1 sm:gap-2 w-full max-w-xs sm:max-w-sm mt-2 sm:mt-4">
                 {/* Numbers 1-9 */}
                 {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
                   <motion.button
@@ -1437,15 +1635,14 @@ export default function NertzScorekeeper() {
                 onClick={handleReturnFromRoundStandings}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className="absolute top-4 right-4 sm:top-6 sm:right-6 z-10 flex items-center justify-center rounded-full bg-white/90 border-2 border-gray-300 shadow-lg"
-                style={{ width: 56, height: 56 }}
+                className="absolute top-4 right-4 sm:top-6 sm:right-6 z-10 w-14 h-14 sm:w-20 sm:h-20 flex items-center justify-center rounded-full bg-white/90 border-2 border-gray-300 shadow-lg"
                 aria-label="Back to re-enter scores"
               >
-                <img src={arrowIcon} alt="Back" className="w-8 h-8 object-contain" />
+                <img src={arrowIcon} alt="Back" className="w-6 h-6 sm:w-8 sm:h-8 object-contain" />
               </motion.button>
 
               <motion.h2 
-                className="nertz-heading text-4xl sm:text-5xl md:text-6xl lg:text-7xl mb-8 sm:mb-12"
+                className="nertz-heading text-4xl sm:text-5xl md:text-6xl lg:text-7xl mb-4 sm:mb-12"
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ duration: 0.6, type: 'spring', bounce: 0.4 }}
@@ -1453,8 +1650,8 @@ export default function NertzScorekeeper() {
                 Round {currentRound} Complete!
               </motion.h2>
 
-              {/* Modular Plaque System */}
-              <div className="relative max-w-2xl w-full mb-8 sm:mb-12">
+              {/* Modular Plaque System - tighter spacing on narrow breakpoint */}
+              <div className="relative max-w-2xl w-full mb-4 sm:mb-12">
                 {/* Top Plaque with "Current Standings" Banner */}
                 <img 
                   src={plaqueTop} 
@@ -1463,10 +1660,10 @@ export default function NertzScorekeeper() {
                   style={{ display: 'block', marginBottom: '-2px' }}
                 />
                 
-                {/* Middle Section - One per team */}
+                {/* Middle Section - One per team; row height smaller on narrow */}
                 <div className="relative" style={{ marginTop: '-2px', marginBottom: '-2px' }}>
                   {[...teams].sort((a, b) => b.score - a.score).map((team, i) => (
-                    <div key={team.name} className="relative" style={{ height: '100px' }}>
+                    <div key={team.name} className="relative h-20 sm:h-[100px]">
                       {/* Background Middle Plaque */}
                       <img 
                         src={plaqueMiddle} 
@@ -1524,15 +1721,15 @@ export default function NertzScorekeeper() {
                   
                   {/* Content Overlay for Bottom Section */}
                   <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    {/* Crest Separator */}
+                    {/* Crest Separator - smaller at narrow breakpoint (~412px) */}
                     <img 
                       src={crest} 
                       alt="Crest" 
-                      className="w-full max-w-sm mb-4"
+                      className="w-full max-w-[200px] mb-4"
                       style={{ filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.3))' }}
                     />
                     
-                    {/* Continue Button */}
+                    {/* Continue Button - extra padding below on narrow breakpoint */}
                     <motion.button
                       onClick={() => {
                         playButtonClick();
@@ -1540,7 +1737,7 @@ export default function NertzScorekeeper() {
                       }}
                       whileHover={{ scale: 1.1 }}
                       whileTap={{ scale: 0.9 }}
-                      className="bg-transparent p-0 border-0 outline-none focus:outline-none"
+                      className="bg-transparent p-0 border-0 outline-none focus:outline-none mb-6 sm:mb-0"
                       style={{ 
                         background: 'transparent', 
                         border: 'none', 
@@ -1575,7 +1772,7 @@ export default function NertzScorekeeper() {
               <motion.img
                 src={gameOverImage}
                 alt="Game Over"
-                className="h-32 sm:h-40 md:h-48 w-auto object-contain mb-8"
+                className="h-50 sm:h-60 md:h-66 w-auto object-contain mb-8"
                 style={{ filter: 'drop-shadow(0 8px 16px rgba(0,0,0,0.3))' }}
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
@@ -1659,6 +1856,18 @@ export default function NertzScorekeeper() {
                   ))}
                 </div>
                 
+                {/* Modular spacer section (16px) so crest isn't touching last card */}
+                <div className="relative" style={{ marginTop: '-2px', marginBottom: '-2px' }}>
+                  <div className="relative" style={{ height: '16px' }}>
+                    <img 
+                      src={leaderboardPlaqueMiddle} 
+                      alt=""
+                      className="w-full h-full"
+                      style={{ display: 'block', objectFit: 'fill' }}
+                    />
+                  </div>
+                </div>
+                
                 {/* Bottom Leaderboard Plaque with Exit Game Button */}
                 <div className="relative" style={{ marginTop: '-2px' }}>
                   <img 
@@ -1670,15 +1879,15 @@ export default function NertzScorekeeper() {
                   
                   {/* Content Overlay for Bottom Section */}
                   <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    {/* Crest Separator */}
+                    {/* Crest Separator - smaller at narrow breakpoint (~412px) */}
                     <img 
                       src={crest} 
                       alt="Crest" 
-                      className="w-full max-w-sm mb-4"
+                      className="w-full max-w-[200px] sm:max-w-sm mb-4"
                       style={{ filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.3))' }}
                     />
                     
-                    {/* Exit Game Button */}
+                    {/* Exit Game Button - extra padding below on narrow breakpoint */}
                     <motion.button
                       onClick={() => {
                         playButtonClick();
@@ -1686,7 +1895,7 @@ export default function NertzScorekeeper() {
                       }}
                       whileHover={{ scale: 1.1 }}
                       whileTap={{ scale: 0.9 }}
-                      className="bg-transparent p-0 border-0 outline-none focus:outline-none"
+                      className="bg-transparent p-0 border-0 outline-none focus:outline-none mb-6 sm:mb-0"
                       style={{ 
                         background: 'transparent', 
                         border: 'none', 
