@@ -207,6 +207,8 @@ export default function NertzScorekeeper() {
   const [currentInputTeam, setCurrentInputTeam] = useState(0);
   const [inputPhase, setInputPhase] = useState<'hand' | 'pile'>('hand');
   const [tempInput, setTempInput] = useState('');
+  const [handScoresTemp, setHandScoresTemp] = useState<number[]>([]);
+  const [pileScoresTemp, setPileScoresTemp] = useState<number[]>([]);
   const [countdownNumber, setCountdownNumber] = useState(3);
   
   // Audio refs
@@ -340,16 +342,21 @@ export default function NertzScorekeeper() {
 
   const selectWinner = (index: number) => {
     setRoundWinner(index);
-    setCurrentInputTeam(index === 0 ? 1 : 0);
+    // First hand team skips winner; with 1 team use 0 so we don't index out of bounds
+    const firstHandTeam = teams.length > 1 && index === 0 ? 1 : 0;
+    setCurrentInputTeam(firstHandTeam);
+    setHandScoresTemp(Array(teams.length).fill(0));
     setGameState('roundEnd');
   };
 
   const submitHandCards = () => {
-    const value = parseInt(tempInput) || 0;
-    const updated = [...teams];
-    updated[currentInputTeam].cardsInHand = value;
-    updated[currentInputTeam].score -= value * 2;
-    setTeams(updated);
+    const raw = parseInt(tempInput, 10);
+    const value = Number.isNaN(raw) ? 0 : Math.max(0, raw);
+    setHandScoresTemp(prev => {
+      const next = [...prev];
+      next[currentInputTeam] = value;
+      return next;
+    });
     setTempInput('');
 
     let nextTeam = currentInputTeam + 1;
@@ -359,6 +366,7 @@ export default function NertzScorekeeper() {
 
     if (nextTeam >= teams.length) {
       setInputPhase('pile');
+      setPileScoresTemp(Array(teams.length).fill(0));
       setCurrentInputTeam(0);
     } else {
       setCurrentInputTeam(nextTeam);
@@ -366,20 +374,28 @@ export default function NertzScorekeeper() {
   };
 
   const submitPileCards = () => {
-    const value = parseInt(tempInput) || 0;
-    const updated = [...teams];
-    updated[currentInputTeam].cardsInPile = value;
-    updated[currentInputTeam].score += value;
-    setTeams(updated);
+    const raw = parseInt(tempInput, 10);
+    const value = Number.isNaN(raw) ? 0 : Math.max(0, raw);
+    const nextPileTemp = [...pileScoresTemp];
+    nextPileTemp[currentInputTeam] = value;
+    setPileScoresTemp(nextPileTemp);
     setTempInput('');
 
     const nextTeam = currentInputTeam + 1;
     if (nextTeam >= teams.length) {
-      const hasWinner = teams.some(t => t.score >= 50);
+      // Apply this round's hand + pile to teams, then go to standings or results
+      const roundDelta = (i: number) => -2 * handScoresTemp[i] + nextPileTemp[i];
+      setTeams(prev => prev.map((t, i) => ({
+        ...t,
+        score: t.score + roundDelta(i),
+        cardsInHand: handScoresTemp[i],
+        cardsInPile: nextPileTemp[i]
+      })));
+      const previewScores = teams.map((t, i) => t.score + roundDelta(i));
+      const hasWinner = previewScores.some(s => s >= 50);
       if (hasWinner) {
         setGameState('results');
       } else {
-        setCurrentRound(currentRound + 1);
         setGameState('roundStandings');
       }
     } else {
@@ -388,6 +404,7 @@ export default function NertzScorekeeper() {
   };
 
   const startNextRound = () => {
+    setCurrentRound(c => c + 1);
     startRound();
     setCountdownNumber(3);
     setGameState('countdown');
@@ -407,6 +424,40 @@ export default function NertzScorekeeper() {
     setCurrentInputTeam(0);
     setInputPhase('hand');
     setTempInput('');
+    setHandScoresTemp([]);
+    setPileScoresTemp([]);
+  };
+
+  const handleReturnFromHandInput = () => {
+    playButtonClick();
+    setRoundWinner(null);
+    setHandScoresTemp([]);
+    setPileScoresTemp([]);
+    setTempInput('');
+  };
+
+  const handleReturnFromPileInput = () => {
+    playButtonClick();
+    const firstHandTeam = Math.min(roundWinner === 0 ? 1 : 0, teams.length - 1);
+    setInputPhase('hand');
+    setCurrentInputTeam(firstHandTeam);
+    setTempInput(String(handScoresTemp[firstHandTeam] ?? ''));
+  };
+
+  const handleReturnFromRoundStandings = () => {
+    playButtonClick();
+    const hand = (i: number) => handScoresTemp[i] ?? 0;
+    const pile = (i: number) => pileScoresTemp[i] ?? 0;
+    setTeams(prev => prev.map((t, i) => ({
+      ...t,
+      score: t.score - (-2 * hand(i) + pile(i)),
+      cardsInHand: 0,
+      cardsInPile: 0
+    })));
+    setGameState('roundEnd');
+    setInputPhase('pile');
+    setCurrentInputTeam(0);
+    setTempInput(String(pile(0)));
   };
 
   const sortedTeams = [...teams].sort((a, b) => b.score - a.score);
@@ -818,7 +869,7 @@ export default function NertzScorekeeper() {
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ duration: 0.6, type: 'spring', bounce: 0.4 }}
-              />
+                />
             </motion.div>
           )}
 
@@ -927,6 +978,18 @@ export default function NertzScorekeeper() {
                 </svg>
               </motion.button>
 
+              {/* Return button - go back to round winner selection */}
+              <motion.button
+                onClick={handleReturnFromHandInput}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="absolute top-4 right-4 sm:top-6 sm:right-6 z-10 flex items-center justify-center rounded-full bg-white/90 border-2 border-gray-300 shadow-lg"
+                style={{ width: 56, height: 56 }}
+                aria-label="Back to change winner"
+              >
+                <img src={arrowIcon} alt="Back" className="w-8 h-8 object-contain" />
+              </motion.button>
+
               <h2 
                 className="text-5xl font-black"
                 style={{ 
@@ -999,7 +1062,7 @@ export default function NertzScorekeeper() {
               </p>
 
               {/* Desktop: Show input and button */}
-              <div className="hidden lg:flex flex-col items-center gap-4">
+              <div className="hidden xl:flex flex-col items-center gap-4">
                 <input
                   type="number"
                   value={tempInput}
@@ -1030,7 +1093,7 @@ export default function NertzScorekeeper() {
               </div>
 
               {/* Mobile/Tablet/iPad: Show numpad */}
-              <div className="lg:hidden grid grid-cols-3 gap-2 w-full max-w-sm mt-4">
+              <div className="xl:hidden grid grid-cols-3 gap-2 w-full max-w-sm mt-4">
                 {/* Numbers 1-9 */}
                 {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
                   <motion.button
@@ -1142,6 +1205,18 @@ export default function NertzScorekeeper() {
                 </svg>
               </motion.button>
 
+              {/* Return button - go back to hand input */}
+              <motion.button
+                onClick={handleReturnFromPileInput}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="absolute top-4 right-4 sm:top-6 sm:right-6 z-10 flex items-center justify-center rounded-full bg-white/90 border-2 border-gray-300 shadow-lg"
+                style={{ width: 56, height: 56 }}
+                aria-label="Back to hand scores"
+              >
+                <img src={arrowIcon} alt="Back" className="w-8 h-8 object-contain" />
+              </motion.button>
+
               <h2 
                 className="text-5xl font-black"
                 style={{ 
@@ -1214,7 +1289,7 @@ export default function NertzScorekeeper() {
               </p>
 
               {/* Desktop: Show input and button */}
-              <div className="hidden lg:flex flex-col items-center gap-4">
+              <div className="hidden xl:flex flex-col items-center gap-4">
                 <input
                   type="number"
                   value={tempInput}
@@ -1245,7 +1320,7 @@ export default function NertzScorekeeper() {
               </div>
 
               {/* Mobile/Tablet/iPad: Show numpad */}
-              <div className="lg:hidden grid grid-cols-3 gap-2 w-full max-w-sm mt-4">
+              <div className="xl:hidden grid grid-cols-3 gap-2 w-full max-w-sm mt-4">
                 {/* Numbers 1-9 */}
                 {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
                   <motion.button
@@ -1357,13 +1432,25 @@ export default function NertzScorekeeper() {
                 </svg>
               </motion.button>
 
+              {/* Return button - go back to pile input to re-enter scores */}
+              <motion.button
+                onClick={handleReturnFromRoundStandings}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="absolute top-4 right-4 sm:top-6 sm:right-6 z-10 flex items-center justify-center rounded-full bg-white/90 border-2 border-gray-300 shadow-lg"
+                style={{ width: 56, height: 56 }}
+                aria-label="Back to re-enter scores"
+              >
+                <img src={arrowIcon} alt="Back" className="w-8 h-8 object-contain" />
+              </motion.button>
+
               <motion.h2 
                 className="nertz-heading text-4xl sm:text-5xl md:text-6xl lg:text-7xl mb-8 sm:mb-12"
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ duration: 0.6, type: 'spring', bounce: 0.4 }}
               >
-                Round {currentRound - 1} Complete!
+                Round {currentRound} Complete!
               </motion.h2>
 
               {/* Modular Plaque System */}
