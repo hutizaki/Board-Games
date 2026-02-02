@@ -2,11 +2,133 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/Board-Games/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>board-game-score-calculator</title>
-    <script type="module" crossorigin src="/Board-Games/assets/index-R8vX1J0l.js"></script>
-    <link rel="stylesheet" crossorigin href="/Board-Games/assets/index-Dvxv9dsI.css">
+    
+    <!-- Favicons -->
+    <link rel="icon" type="image/x-icon" href="/Board-Games/favicon.ico" />
+    <link rel="icon" type="image/svg+xml" href="/Board-Games/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="96x96" href="/Board-Games/favicon-96x96.png" />
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/Board-Games/manifest.json" />
+    
+    <!-- Apple Touch Icon for iOS home screen -->
+    <link rel="apple-touch-icon" sizes="180x180" href="/Board-Games/apple-touch-icon.png" />
+    
+    <!-- Enhanced viewport for iOS webapp -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    
+    <!-- iOS Web App Meta Tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="NERTZ" />
+    
+    <!-- Disable tap highlight and adjust touch behavior -->
+    <meta name="format-detection" content="telephone=no" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    
+    <!-- Performance optimizations -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Comic+Neue:wght@400;700&display=swap" rel="stylesheet">
+    
+    <title>Board Game Score Calculator</title>
+    
+    <!-- Single Page Apps for GitHub Pages -->
+    <!-- Start Single Page Apps Script -->
+    <script>
+      // Single Page Apps for GitHub Pages
+      // MIT License
+      // https://github.com/rafgraph/spa-github-pages
+      // This script checks to see if a redirect is present in the query string,
+      // converts it back into the correct url and adds it to the
+      // browser's history using window.history.replaceState(...),
+      // which won't cause the browser to attempt to load the new url.
+      // When the single page app is loaded further down in this file,
+      // the correct url will be waiting in the browser's history for
+      // the single page app to route accordingly.
+      (function(l) {
+        if (l.search[1] === '/' ) {
+          var decoded = l.search.slice(1).split('&').map(function(s) { 
+            return s.replace(/~and~/g, '&')
+          }).join('?');
+          window.history.replaceState(null, null,
+              l.pathname.slice(0, -1) + decoded + l.hash
+          );
+        }
+      }(window.location))
+    </script>
+    <!-- End Single Page Apps Script -->
+    
+    <style>
+      /* Prevent iOS bounce/overscroll and improve touch responsiveness */
+      html {
+        height: 100%;
+        min-height: 100%;
+        min-height: -webkit-fill-available; /* iOS standalone/PWA full screen */
+        width: 100%;
+      }
+      body {
+        overscroll-behavior: none;
+        -webkit-overflow-scrolling: touch;
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: transparent;
+        -webkit-touch-callout: none;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+             user-select: none;
+        /* Fixed height to prevent scrolling; fill screen in iOS webapp */
+        height: 100%;
+        min-height: 100%;
+        min-height: -webkit-fill-available;
+        width: 100%;
+        overflow: hidden;
+        position: fixed;
+        margin: 0;
+        padding: 0;
+      }
+      
+      /* Allow text selection for inputs */
+      input, textarea {
+        -webkit-user-select: auto;
+        -moz-user-select: auto;
+             user-select: auto;
+      }
+      
+      /* Root: fill entire viewport in PWA/standalone and respect safe areas (notch, home indicator) */
+      #root {
+        transform: translateZ(0);
+        -webkit-transform: translateZ(0);
+        box-sizing: border-box;
+        /* Cover full viewport */
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        width: 100vw;
+        height: 100vh;
+        height: 100dvh;
+        min-height: 100%;
+        min-height: -webkit-fill-available;
+        /* Inset content from notch and home indicator */
+        padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+        overflow: hidden;
+      }
+      
+      /* Remove 300ms click delay on iOS */
+      a, button, input, select, textarea {
+        touch-action: manipulation;
+      }
+      
+      /* Prevent pull-to-refresh */
+      body {
+        overscroll-behavior-y: contain;
+      }
+    </style>
+    <script type="module" crossorigin src="/Board-Games/assets/index-yle6GJad.js"></script>
+    <link rel="modulepreload" crossorigin href="/Board-Games/assets/react-vendor-CBFOBm_x.js">
+    <link rel="modulepreload" crossorigin href="/Board-Games/assets/framer-motion-8rbRV54F.js">
+    <link rel="stylesheet" crossorigin href="/Board-Games/assets/index-DZ8B_l6x.css">
   </head>
   <body>
     <div id="root"></div>

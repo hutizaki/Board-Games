@@ -1,0 +1,32 @@
+{
+  "name": "NERTZ Score Calculator",
+  "short_name": "NERTZ",
+  "description": "Score calculator for board games including NERTZ, Odd One Out, and Scrabble",
+  "start_url": "/Board-Games/nertz",
+  "scope": "/Board-Games/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f17821",
+  "theme_color": "#f17821",
+  "icons": [
+    {
+      "src": "/Board-Games/web-app-manifest-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/Board-Games/web-app-manifest-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/Board-Games/web-app-manifest-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
+
