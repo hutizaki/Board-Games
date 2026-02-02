@@ -61,7 +61,13 @@
     
     <style>
       /* Prevent iOS bounce/overscroll and improve touch responsiveness */
-      html, body {
+      html {
+        height: 100%;
+        min-height: 100%;
+        min-height: -webkit-fill-available; /* iOS standalone/PWA full screen */
+        width: 100%;
+      }
+      body {
         overscroll-behavior: none;
         -webkit-overflow-scrolling: touch;
         touch-action: manipulation;
@@ -69,11 +75,15 @@
         -webkit-touch-callout: none;
         -webkit-user-select: none;
         user-select: none;
-        /* Fixed height to prevent scrolling */
+        /* Fixed height to prevent scrolling; fill screen in iOS webapp */
         height: 100%;
+        min-height: 100%;
+        min-height: -webkit-fill-available;
         width: 100%;
         overflow: hidden;
         position: fixed;
+        margin: 0;
+        padding: 0;
       }
       
       /* Allow text selection for inputs */
@@ -82,20 +92,25 @@
         user-select: auto;
       }
       
-      /* Improve rendering performance */
+      /* Root: fill entire viewport in PWA/standalone and respect safe areas (notch, home indicator) */
       #root {
         transform: translateZ(0);
         -webkit-transform: translateZ(0);
-        /* Fill the viewport properly */
-        height: 100vh;
-        height: 100dvh; /* Dynamic viewport height for mobile browsers */
-        width: 100vw;
-        overflow: hidden;
+        box-sizing: border-box;
+        /* Cover full viewport */
         position: fixed;
         top: 0;
         left: 0;
         right: 0;
         bottom: 0;
+        width: 100vw;
+        height: 100vh;
+        height: 100dvh;
+        min-height: 100%;
+        min-height: -webkit-fill-available;
+        /* Inset content from notch and home indicator */
+        padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+        overflow: hidden;
       }
       
       /* Remove 300ms click delay on iOS */

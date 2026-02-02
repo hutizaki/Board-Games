@@ -1,10 +1,12 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import './NERTZ.css';
 import {
   getHistory,
   appendToHistory,
+  updateHistoryEntry,
+  removeHistoryEntries,
   isSnapshotLoadable,
   type NertzHistoryEntry,
   type NertzSnapshot,
@@ -226,11 +228,17 @@ export default function NertzScorekeeper() {
   const [exitHoldProgress, setExitHoldProgress] = useState(0);
   const exitHoldTimerRef = useRef<number | null>(null);
   const exitHoldStartTimeRef = useRef<number | null>(null);
+  const exitCompleteFiredRef = useRef(false);
 
   // History: show history list instead of home content; viewingEntry = completed game detail
   const [showHistory, setShowHistory] = useState(false);
   const [viewingEntry, setViewingEntry] = useState<NertzHistoryEntry | null>(null);
+  const [historyVersion, setHistoryVersion] = useState(0);
+  const [isDeleteMode, setIsDeleteMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const historyList = useMemo(() => getHistory(), [historyVersion]);
   const savedResultsRef = useRef(false);
+  const loadedHistoryIdRef = useRef<string | null>(null);
 
   // Narrow viewport: shift bottom-right ace right ~15px (used for responsive ace position only)
   const [isNarrowViewport, setIsNarrowViewport] = useState(false);
@@ -305,15 +313,22 @@ export default function NertzScorekeeper() {
   // Save completed game to history once when entering results
   useEffect(() => {
     if (gameState !== 'results' || teams.length === 0 || savedResultsRef.current) return;
+    savedResultsRef.current = true; // claim immediately so re-runs (e.g. strict mode / mobile) don't double-append
     const snapshot = buildSnapshot();
-    const entry: NertzHistoryEntry = {
-      id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
-      savedAt: Date.now(),
-      completed: true,
-      snapshot,
-    };
-    appendToHistory(entry);
-    savedResultsRef.current = true;
+    const loadedId = loadedHistoryIdRef.current;
+    if (loadedId) {
+      updateHistoryEntry(loadedId, { savedAt: Date.now(), snapshot, completed: true });
+      loadedHistoryIdRef.current = null;
+    } else {
+      const entry: NertzHistoryEntry = {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+        savedAt: Date.now(),
+        completed: true,
+        snapshot,
+      };
+      appendToHistory(entry);
+    }
+    setHistoryVersion((v) => v + 1); // refresh history list so new entry appears
   }, [gameState, teams.length]);
 
   const availableColors = DECK_COLORS[deckType];
@@ -464,6 +479,8 @@ export default function NertzScorekeeper() {
     setPileScoresTemp([]);
     setShowHistory(false);
     savedResultsRef.current = false;
+    exitCompleteFiredRef.current = false; // allow next exit hold to save to history
+    loadedHistoryIdRef.current = null; // fresh start; next save will append, not update
   };
 
   function buildSnapshot(): NertzSnapshot {
@@ -516,6 +533,7 @@ export default function NertzScorekeeper() {
 
   const loadGame = (entry: NertzHistoryEntry) => {
     if (entry.completed || !isSnapshotLoadable(entry)) return;
+    loadedHistoryIdRef.current = entry.id; // so we update this entry on exit/complete instead of appending
     const s = entry.snapshot;
     setGameState(s.gameState);
     setDeckType(s.deckType);
@@ -549,7 +567,9 @@ export default function NertzScorekeeper() {
   };
 
   // Exit button handlers
-  const handleExitMouseDown = () => {
+  const handleExitMouseDown = (e?: React.TouchEvent | React.MouseEvent) => {
+    if (exitHoldTimerRef.current) return; // already holding; avoid duplicate intervals (e.g. touch + mouse on device toolbar)
+    if (e?.type === 'touchstart') e.preventDefault(); // avoid double-firing with mouse events
     exitHoldStartTimeRef.current = Date.now();
     exitHoldTimerRef.current = window.setInterval(() => {
       const elapsed = Date.now() - (exitHoldStartTimeRef.current || 0);
@@ -562,16 +582,20 @@ export default function NertzScorekeeper() {
     }, 16); // ~60fps
   };
 
-  const handleExitMouseUp = () => {
+  const handleExitMouseUp = (e?: React.TouchEvent | React.MouseEvent) => {
     if (exitHoldTimerRef.current) {
       clearInterval(exitHoldTimerRef.current);
       exitHoldTimerRef.current = null;
     }
     exitHoldStartTimeRef.current = null;
+    exitCompleteFiredRef.current = false;
     setExitHoldProgress(0);
+    if (e?.type === 'touchend') e.preventDefault(); // prevent synthetic click from firing
   };
 
   const handleExitComplete = () => {
+    if (exitCompleteFiredRef.current) return; // already handled (e.g. multiple intervals from touch+mouse)
+    exitCompleteFiredRef.current = true;
     if (exitHoldTimerRef.current) {
       clearInterval(exitHoldTimerRef.current);
       exitHoldTimerRef.current = null;
@@ -580,13 +604,20 @@ export default function NertzScorekeeper() {
     setExitHoldProgress(0);
     if (gameState !== 'home' && gameState !== 'results' && teams.length > 0) {
       const snapshot = buildSnapshot();
-      const entry: NertzHistoryEntry = {
-        id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
-        savedAt: Date.now(),
-        completed: false,
-        snapshot,
-      };
-      appendToHistory(entry);
+      const loadedId = loadedHistoryIdRef.current;
+      if (loadedId) {
+        updateHistoryEntry(loadedId, { savedAt: Date.now(), snapshot, completed: false });
+        loadedHistoryIdRef.current = null;
+      } else {
+        const entry: NertzHistoryEntry = {
+          id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+          savedAt: Date.now(),
+          completed: false,
+          snapshot,
+        };
+        appendToHistory(entry);
+      }
+      setHistoryVersion((v) => v + 1); // refresh history list so new entry appears
     }
     resetGame();
   };
@@ -620,17 +651,16 @@ export default function NertzScorekeeper() {
 
   return (
     <div 
-      className="flex flex-col relative"
+      className="flex flex-col relative w-full h-full min-h-full"
       style={{
         backgroundImage: `url(${nertzBackground})`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundRepeat: 'no-repeat',
         backgroundAttachment: 'fixed',
-        height: '100dvh',
-        width: '100vw',
+        minHeight: '-webkit-fill-available',
         overflow: 'hidden',
-        position: 'fixed',
+        position: 'absolute',
         top: 0,
         left: 0,
         right: 0,
@@ -692,8 +722,39 @@ export default function NertzScorekeeper() {
                     />
                   )}
 
-                  {/* Spacer for symmetry */}
-                  <div className="w-16 h-16 sm:w-20 sm:h-20"></div>
+                  {/* When history: Delete mode toggle or spacer */}
+                  {showHistory ? (
+                    <motion.button
+                      onClick={() => {
+                        playButtonClick();
+                        if (isDeleteMode) {
+                          setIsDeleteMode(false);
+                          setSelectedIds(new Set());
+                        } else {
+                          setIsDeleteMode(true);
+                          setSelectedIds(new Set());
+                        }
+                      }}
+                      whileHover={{ scale: 1.08 }}
+                      whileTap={{ scale: 0.92 }}
+                      className="w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center rounded-xl font-bold text-sm border-2 shadow-md"
+                      style={{
+                        background: isDeleteMode ? '#c4a77d' : '#f7ebe1',
+                        borderColor: isDeleteMode ? '#8b7355' : '#d4c4b0',
+                        color: isDeleteMode ? '#fff' : '#5c4a3d',
+                        fontFamily: "'Comic Neue', 'Comic Sans MS', cursive",
+                      }}
+                      aria-label={isDeleteMode ? 'Cancel delete mode' : 'Delete games'}
+                    >
+                      {isDeleteMode ? 'Cancel' : (
+                        <svg className="w-7 h-7 sm:w-8 sm:h-8" fill="currentColor" viewBox="0 0 24 24" aria-hidden>
+                          <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
+                        </svg>
+                      )}
+                    </motion.button>
+                  ) : (
+                    <div className="w-16 h-16 sm:w-20 sm:h-20"></div>
+                  )}
                 </div>
               </div>
 
@@ -706,57 +767,129 @@ export default function NertzScorekeeper() {
                     className="w-full max-w-2xl flex flex-col gap-3 py-4 overflow-y-auto rounded-2xl px-4"
                     style={{ background: '#f7ebe1' }}
                   >
-                    {getHistory().length === 0 ? (
+                    {historyList.length === 0 ? (
                       <p className="text-xl font-bold text-gray-800" style={{ fontFamily: "'Comic Neue', 'Comic Sans MS', cursive" }}>
                         No games yet. Start one!
                       </p>
                     ) : (
-                      getHistory().map((entry) => (
-                        <motion.div
-                          key={entry.id}
-                          initial={{ opacity: 0, x: -10 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          className="rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-left"
-                          style={{
-                            background: '#f7ebe1',
-                            border: '2px solid #d4c4b0',
-                            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                          }}
-                        >
-                          <div className="flex-1 min-w-0">
-                            <p className="text-gray-800 font-bold text-lg" style={{ fontFamily: "'Comic Neue', 'Comic Sans MS', cursive" }}>
-                              {new Date(entry.savedAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
+                      <>
+                        {isDeleteMode && (
+                          <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            className="flex flex-col gap-2 pb-3 border-b-2 border-dashed border-[#d4c4b0]"
+                            style={{ fontFamily: "'Comic Neue', 'Comic Sans MS', cursive" }}
+                          >
+                            <p className="text-gray-600 text-sm font-bold text-left">
+                              Tap entries to select, then delete.
                             </p>
-                            <p className="text-gray-600 text-sm mt-0.5" style={{ fontFamily: "'Comic Neue', 'Comic Sans MS', cursive" }}>
-                              {entry.completed ? 'Completed' : 'Incomplete'} · Round {entry.snapshot.currentRound} · {entry.snapshot.teams.length} teams
-                            </p>
-                          </div>
-                          <div className="flex gap-2 flex-shrink-0">
-                            {!entry.completed && isSnapshotLoadable(entry) && (
+                            <div className="flex flex-wrap items-center gap-2">
                               <motion.button
-                                onClick={() => { playButtonClick(); loadGame(entry); }}
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
-                                className="px-4 py-2 rounded-xl font-bold text-white text-sm"
-                                style={{ background: BICYCLE_ORANGE, fontFamily: "'Comic Neue', 'Comic Sans MS', cursive" }}
+                                onClick={() => {
+                                  playButtonClick();
+                                  const allSelected = selectedIds.size === historyList.length;
+                                  setSelectedIds(allSelected ? new Set() : new Set(historyList.map((e) => e.id)));
+                                }}
+                                whileHover={{ scale: 1.03 }}
+                                whileTap={{ scale: 0.97 }}
+                                className="px-3 py-2 rounded-xl font-bold text-sm border-2"
+                                style={{
+                                  background: selectedIds.size === historyList.length ? '#8b7355' : '#e8d5c4',
+                                  borderColor: '#b8a090',
+                                  color: selectedIds.size === historyList.length ? '#fff' : '#5c4a3d',
+                                }}
                               >
-                                Load
+                                {selectedIds.size === historyList.length ? 'Deselect all' : 'Select all'}
                               </motion.button>
-                            )}
-                            {entry.completed && (
+                              <span className="text-gray-600 text-sm font-bold">
+                                {selectedIds.size} selected
+                              </span>
                               <motion.button
-                                onClick={() => { playButtonClick(); setViewingEntry(entry); }}
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
-                                className="px-4 py-2 rounded-xl font-bold text-gray-800 text-sm border-2 border-gray-500"
-                                style={{ background: '#f7ebe1', fontFamily: "'Comic Neue', 'Comic Sans MS', cursive" }}
+                                onClick={() => {
+                                  if (selectedIds.size === 0) return;
+                                  playButtonClick();
+                                  removeHistoryEntries(Array.from(selectedIds));
+                                  setHistoryVersion((v) => v + 1);
+                                  setSelectedIds(new Set());
+                                  setIsDeleteMode(false);
+                                }}
+                                disabled={selectedIds.size === 0}
+                                whileHover={selectedIds.size > 0 ? { scale: 1.03 } : {}}
+                                whileTap={selectedIds.size > 0 ? { scale: 0.97 } : {}}
+                                className="px-4 py-2 rounded-xl font-bold text-sm text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                                style={{
+                                  background: selectedIds.size > 0 ? '#c44' : '#aaa',
+                                  boxShadow: selectedIds.size > 0 ? '0 2px 8px rgba(200,68,68,0.4)' : 'none',
+                                }}
                               >
-                                View
+                                Delete{selectedIds.size > 0 ? ` (${selectedIds.size})` : ''}
                               </motion.button>
-                            )}
-                          </div>
-                        </motion.div>
-                      ))
+                            </div>
+                          </motion.div>
+                        )}
+                        {historyList.map((entry) => {
+                          const isSelected = selectedIds.has(entry.id);
+                          return (
+                            <motion.div
+                              key={entry.id}
+                              initial={{ opacity: 0, x: -10 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              onClick={isDeleteMode ? () => { playButtonClick(); setSelectedIds((prev) => { const next = new Set(prev); if (next.has(entry.id)) next.delete(entry.id); else next.add(entry.id); return next; }); } : undefined}
+                              role={isDeleteMode ? 'button' : undefined}
+                              tabIndex={isDeleteMode ? 0 : undefined}
+                              onKeyDown={isDeleteMode ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); playButtonClick(); setSelectedIds((prev) => { const next = new Set(prev); if (next.has(entry.id)) next.delete(entry.id); else next.add(entry.id); return next; }); } } : undefined}
+                              className={`rounded-2xl p-4 flex items-center gap-3 text-left transition-all ${isDeleteMode ? 'cursor-pointer select-none flex-row' : 'flex-col sm:flex-row sm:items-center'} ${isDeleteMode ? 'active:scale-[0.99]' : ''}`}
+                              style={{
+                                background: isSelected ? '#e8d5c4' : '#f7ebe1',
+                                border: `2px solid ${isSelected ? '#8b7355' : '#d4c4b0'}`,
+                                boxShadow: isSelected ? '0 4px 16px rgba(139,115,85,0.35)' : '0 4px 12px rgba(0,0,0,0.15)',
+                              }}
+                            >
+                              {isDeleteMode && (
+                                <div className="flex items-center justify-center w-8 h-8 flex-shrink-0 rounded-lg border-2 border-[#8b7355] bg-white">
+                                  {isSelected ? (
+                                    <svg className="w-5 h-5 text-[#5c4a3d]" fill="currentColor" viewBox="0 0 24 24" aria-hidden>
+                                      <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
+                                    </svg>
+                                  ) : null}
+                                </div>
+                              )}
+                              <div className="flex-1 min-w-0">
+                                <p className="text-gray-800 font-bold text-lg" style={{ fontFamily: "'Comic Neue', 'Comic Sans MS', cursive" }}>
+                                  {new Date(entry.savedAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
+                                </p>
+                                <p className="text-gray-600 text-sm mt-0.5" style={{ fontFamily: "'Comic Neue', 'Comic Sans MS', cursive" }}>
+                                  {entry.completed ? 'Completed' : 'Incomplete'} · Round {entry.snapshot.currentRound} · {entry.snapshot.teams.length} teams
+                                </p>
+                              </div>
+                              {!isDeleteMode && (
+                                <div className="flex gap-2 flex-shrink-0">
+                                  {!entry.completed && isSnapshotLoadable(entry) && (
+                                    <motion.button
+                                      onClick={(e) => { e.stopPropagation(); playButtonClick(); loadGame(entry); }}
+                                      whileHover={{ scale: 1.05 }}
+                                      whileTap={{ scale: 0.95 }}
+                                      className="px-4 py-2 rounded-xl font-bold text-white text-sm"
+                                      style={{ background: BICYCLE_ORANGE, fontFamily: "'Comic Neue', 'Comic Sans MS', cursive" }}
+                                    >
+                                      Load
+                                    </motion.button>
+                                  )}
+                                  <motion.button
+                                    onClick={(e) => { e.stopPropagation(); playButtonClick(); setViewingEntry(entry); }}
+                                    whileHover={{ scale: 1.05 }}
+                                    whileTap={{ scale: 0.95 }}
+                                    className="px-4 py-2 rounded-xl font-bold text-gray-800 text-sm border-2 border-gray-500"
+                                    style={{ background: '#f7ebe1', fontFamily: "'Comic Neue', 'Comic Sans MS', cursive" }}
+                                  >
+                                    View
+                                  </motion.button>
+                                </div>
+                              )}
+                            </motion.div>
+                          );
+                        })}
+                      </>
                     )}
                   </motion.div>
                 ) : (
@@ -952,7 +1085,7 @@ export default function NertzScorekeeper() {
             </motion.div>
           )}
 
-          {/* View completed game overlay (when viewingEntry is set) */}
+          {/* View game overlay (completed or incomplete; when viewingEntry is set) */}
           {gameState === 'home' && viewingEntry != null && (
             <motion.div
               initial={{ opacity: 0 }}
@@ -969,7 +1102,9 @@ export default function NertzScorekeeper() {
                 className="rounded-3xl shadow-2xl p-6 max-w-md w-full max-h-[80vh] overflow-y-auto"
                 style={{ background: '#f7ebe1', fontFamily: "'Comic Neue', 'Comic Sans MS', cursive" }}
               >
-                <h3 className="text-2xl font-black text-gray-800 mb-2">Final Standings</h3>
+                <h3 className="text-2xl font-black text-gray-800 mb-2">
+                  {viewingEntry.completed ? 'Final Standings' : 'Current Standings'}
+                </h3>
                 <p className="text-sm text-gray-600 mb-4">
                   {new Date(viewingEntry.savedAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
                 </p>
@@ -1148,35 +1283,23 @@ export default function NertzScorekeeper() {
                 onMouseLeave={handleExitMouseUp}
                 onTouchStart={handleExitMouseDown}
                 onTouchEnd={handleExitMouseUp}
-                className="absolute top-4 left-4 sm:top-6 sm:left-6 z-10"
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                type="button"
+                className="absolute top-4 left-4 sm:top-6 sm:left-6 z-10 w-14 h-14 sm:w-20 sm:h-20 flex items-center justify-center rounded-full overflow-hidden cursor-pointer"
                 style={{
-                  width: 80,
-                  height: 80,
-                  borderRadius: '50%',
-                  overflow: 'hidden',
                   background: 'rgba(0,0,0,0.5)',
-                  border: '3px solid rgba(255,255,255,0.8)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer'
+                  border: '3px solid rgba(255,255,255,0.8)'
                 }}
               >
                 {/* X icon (visible when not holding) */}
                 {exitHoldProgress === 0 && (
-                  <div style={{ 
-                    position: 'absolute',
-                    fontSize: '36px',
-                    fontWeight: 'bold',
-                    color: 'white',
-                    zIndex: 2
-                  }}>
+                  <div className="absolute text-2xl sm:text-4xl font-bold text-white z-[2] pointer-events-none">
                     ✕
                   </div>
                 )}
                 
                 {/* Progress pie slice */}
-                <svg width="80" height="80" viewBox="0 0 80 80" style={{ transform: 'rotate(-90deg)' }}>
+                <svg className="w-full h-full" viewBox="0 0 80 80" style={{ transform: 'rotate(-90deg)' }}>
                   <path
                     d={`M 40 40 L 40 0 A 40 40 0 ${exitHoldProgress > 0.5 ? 1 : 0} 1 ${
                       40 + 40 * Math.sin((exitHoldProgress * 2 * Math.PI))
@@ -1369,35 +1492,23 @@ export default function NertzScorekeeper() {
                 onMouseLeave={handleExitMouseUp}
                 onTouchStart={handleExitMouseDown}
                 onTouchEnd={handleExitMouseUp}
-                className="absolute top-4 left-4 sm:top-6 sm:left-6 z-10"
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                type="button"
+                className="absolute top-4 left-4 sm:top-6 sm:left-6 z-10 w-14 h-14 sm:w-20 sm:h-20 flex items-center justify-center rounded-full overflow-hidden cursor-pointer"
                 style={{
-                  width: 80,
-                  height: 80,
-                  borderRadius: '50%',
-                  overflow: 'hidden',
                   background: 'rgba(0,0,0,0.5)',
-                  border: '3px solid rgba(255,255,255,0.8)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer'
+                  border: '3px solid rgba(255,255,255,0.8)'
                 }}
               >
                 {/* X icon (visible when not holding) */}
                 {exitHoldProgress === 0 && (
-                  <div style={{ 
-                    position: 'absolute',
-                    fontSize: '36px',
-                    fontWeight: 'bold',
-                    color: 'white',
-                    zIndex: 2
-                  }}>
+                  <div className="absolute text-2xl sm:text-4xl font-bold text-white z-[2] pointer-events-none">
                     ✕
                   </div>
                 )}
                 
                 {/* Progress pie slice */}
-                <svg width="80" height="80" viewBox="0 0 80 80" style={{ transform: 'rotate(-90deg)' }}>
+                <svg className="w-full h-full" viewBox="0 0 80 80" style={{ transform: 'rotate(-90deg)' }}>
                   <path
                     d={`M 40 40 L 40 0 A 40 40 0 ${exitHoldProgress > 0.5 ? 1 : 0} 1 ${
                       40 + 40 * Math.sin((exitHoldProgress * 2 * Math.PI))
@@ -1590,35 +1701,23 @@ export default function NertzScorekeeper() {
                 onMouseLeave={handleExitMouseUp}
                 onTouchStart={handleExitMouseDown}
                 onTouchEnd={handleExitMouseUp}
-                className="absolute top-4 left-4 sm:top-6 sm:left-6 z-10"
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                type="button"
+                className="absolute top-4 left-4 sm:top-6 sm:left-6 z-10 w-14 h-14 sm:w-20 sm:h-20 flex items-center justify-center rounded-full overflow-hidden cursor-pointer"
                 style={{
-                  width: 80,
-                  height: 80,
-                  borderRadius: '50%',
-                  overflow: 'hidden',
                   background: 'rgba(0,0,0,0.5)',
-                  border: '3px solid rgba(255,255,255,0.8)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer'
+                  border: '3px solid rgba(255,255,255,0.8)'
                 }}
               >
                 {/* X icon (visible when not holding) */}
                 {exitHoldProgress === 0 && (
-                  <div style={{ 
-                    position: 'absolute',
-                    fontSize: '36px',
-                    fontWeight: 'bold',
-                    color: 'white',
-                    zIndex: 2
-                  }}>
+                  <div className="absolute text-2xl sm:text-4xl font-bold text-white z-[2] pointer-events-none">
                     ✕
                   </div>
                 )}
                 
                 {/* Progress pie slice */}
-                <svg width="80" height="80" viewBox="0 0 80 80" style={{ transform: 'rotate(-90deg)' }}>
+                <svg className="w-full h-full" viewBox="0 0 80 80" style={{ transform: 'rotate(-90deg)' }}>
                   <path
                     d={`M 40 40 L 40 0 A 40 40 0 ${exitHoldProgress > 0.5 ? 1 : 0} 1 ${
                       40 + 40 * Math.sin((exitHoldProgress * 2 * Math.PI))

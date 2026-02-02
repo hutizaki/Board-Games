@@ -90,9 +90,35 @@ export function isSnapshotLoadable(entry: NertzHistoryEntry): boolean {
   return true;
 }
 
+export function updateHistoryEntry(
+  id: string,
+  updates: Partial<Pick<NertzHistoryEntry, 'savedAt' | 'snapshot' | 'completed'>>
+): void {
+  try {
+    const list = getHistory();
+    const idx = list.findIndex((e) => e.id === id);
+    if (idx === -1) return;
+    list[idx] = { ...list[idx], ...updates };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+  } catch {
+    // ignore
+  }
+}
+
 export function removeHistoryEntry(id: string): void {
   try {
     const list = getHistory().filter((e) => e.id !== id);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+  } catch {
+    // ignore
+  }
+}
+
+export function removeHistoryEntries(ids: string[]): void {
+  if (ids.length === 0) return;
+  try {
+    const set = new Set(ids);
+    const list = getHistory().filter((e) => !set.has(e.id));
     localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
   } catch {
     // ignore
