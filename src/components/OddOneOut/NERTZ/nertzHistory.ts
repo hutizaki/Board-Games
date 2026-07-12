@@ -38,6 +38,11 @@ export interface NertzSnapshot {
   tempInput: string;
   handScoresTemp: number[];
   pileScoresTemp: number[];
+  targetScore?: number; // win threshold; older snapshots default to 50
+  // False when the in-progress round's hand/pile counts are not yet committed
+  // to team scores (the commit-once flow). Absent = legacy snapshot where a
+  // 'roundStandings' save had already applied them.
+  scoresApplied?: boolean;
 }
 
 export interface NertzHistoryEntry {

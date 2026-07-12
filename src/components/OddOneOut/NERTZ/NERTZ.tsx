@@ -20,6 +20,7 @@ import nertzLogo from '../../../assets/Nertz/buttons/nertzLogo.png';
 
 // Import UI buttons
 import arrowIcon from '../../../assets/Nertz/buttons/arrow.png';
+import gearIcon from '../../../assets/Nertz/buttons/gear.png';
 import startGameButton from '../../../assets/Nertz/buttons/startGame.png';
 import continueButton from '../../../assets/Nertz/buttons/continue.png';
 import exitGameButton from '../../../assets/Nertz/buttons/exitGame.png';
@@ -173,6 +174,20 @@ const DECK_COLORS: Record<DeckType, CardColor[]> = {
 };
 
 const BICYCLE_ORANGE = '#f17821';
+const BACKGROUND_ORANGE = '#fb6604'; // matches bottom edge of nertzBackground.png; shown behind safe areas
+const TARGET_SCORE_KEY = 'nertz_target_score';
+const TARGET_SCORE_OPTIONS = [50, 75, 100, 150, 200];
+const DEFAULT_TARGET_SCORE = 50;
+const MAX_INPUT_DIGITS = 3;
+
+function loadTargetScore(): number {
+  try {
+    const v = parseInt(localStorage.getItem(TARGET_SCORE_KEY) ?? '', 10);
+    return Number.isFinite(v) && v > 0 ? v : DEFAULT_TARGET_SCORE;
+  } catch {
+    return DEFAULT_TARGET_SCORE;
+  }
+}
 
 // Number images mapping (for countdown)
 const NUMBER_IMAGES: Record<number, string> = {
@@ -219,6 +234,13 @@ export default function NertzScorekeeper() {
   const [handScoresTemp, setHandScoresTemp] = useState<number[]>([]);
   const [pileScoresTemp, setPileScoresTemp] = useState<number[]>([]);
   const [countdownNumber, setCountdownNumber] = useState(3);
+  const [targetScore, setTargetScore] = useState<number>(loadTargetScore);
+  const [showSettings, setShowSettings] = useState(false);
+  // True when tempInput was prefilled from a stored score (back navigation);
+  // the first digit typed then replaces it instead of appending.
+  const inputPrefilledRef = useRef(false);
+  // Guards against committing the same round's scores twice (double-tap, duplicate events)
+  const roundAppliedRef = useRef(false);
   
   // Audio refs
   const gameMusicRef = useRef<HTMLAudioElement | null>(null);
@@ -248,6 +270,28 @@ export default function NertzScorekeeper() {
     setIsNarrowViewport(m.matches);
     m.addEventListener('change', handler);
     return () => m.removeEventListener('change', handler);
+  }, []);
+
+  // Persist target score so it sticks across visits
+  useEffect(() => {
+    try {
+      localStorage.setItem(TARGET_SCORE_KEY, String(targetScore));
+    } catch {
+      // storage unavailable; setting just won't persist
+    }
+  }, [targetScore]);
+
+  // Match the page background to the game art while NERTZ is mounted so iOS
+  // safe areas / viewport resize gaps show orange instead of the default gray.
+  useEffect(() => {
+    const prevBody = document.body.style.backgroundColor;
+    const prevHtml = document.documentElement.style.backgroundColor;
+    document.body.style.backgroundColor = BACKGROUND_ORANGE;
+    document.documentElement.style.backgroundColor = BACKGROUND_ORANGE;
+    return () => {
+      document.body.style.backgroundColor = prevBody;
+      document.documentElement.style.backgroundColor = prevHtml;
+    };
   }, []);
 
   // Preload NERTZ sound effect for instant playback
@@ -396,19 +440,48 @@ export default function NertzScorekeeper() {
     // First hand team skips winner; with 1 team use 0 so we don't index out of bounds
     const firstHandTeam = teams.length > 1 && index === 0 ? 1 : 0;
     setCurrentInputTeam(firstHandTeam);
+    setInputPhase('hand');
     setHandScoresTemp(Array(teams.length).fill(0));
+    setPileScoresTemp(Array(teams.length).fill(0));
+    setTempInput('');
+    inputPrefilledRef.current = false;
+    roundAppliedRef.current = false; // new round entry begins; scores not committed yet
     setGameState('roundEnd');
+  };
+
+  // This round's score change for team i: -2 per card left in hand, +1 per pile card
+  const roundDelta = (i: number, pileTemp: number[]) =>
+    -2 * (handScoresTemp[i] ?? 0) + (pileTemp[i] ?? 0);
+
+  // Commit the entered hand/pile counts to team scores exactly once per round.
+  // Scores are NOT touched before this, so back-navigation never has to revert
+  // anything (reverting is what previously corrupted scores on double-taps).
+  // Returns false if this round was already committed.
+  const applyRoundScores = (pileTemp: number[]): boolean => {
+    if (roundAppliedRef.current) return false;
+    roundAppliedRef.current = true;
+    setTeams(prev => prev.map((t, i) => ({
+      ...t,
+      score: t.score + roundDelta(i, pileTemp),
+      cardsInHand: handScoresTemp[i] ?? 0,
+      cardsInPile: pileTemp[i] ?? 0
+    })));
+    return true;
+  };
+
+  // Prefill the input with a team's stored score (from back navigation or a
+  // forward pass over already-entered teams) so re-confirming never loses data.
+  const prefillInput = (value: number | undefined) => {
+    setTempInput(value ? String(value) : '');
+    inputPrefilledRef.current = !!value;
   };
 
   const submitHandCards = () => {
     const raw = parseInt(tempInput, 10);
     const value = Number.isNaN(raw) ? 0 : Math.max(0, raw);
-    setHandScoresTemp(prev => {
-      const next = [...prev];
-      next[currentInputTeam] = value;
-      return next;
-    });
-    setTempInput('');
+    const nextHandTemp = [...handScoresTemp];
+    nextHandTemp[currentInputTeam] = value;
+    setHandScoresTemp(nextHandTemp);
 
     let nextTeam = currentInputTeam + 1;
     while (nextTeam < teams.length && nextTeam === roundWinner) {
@@ -417,10 +490,17 @@ export default function NertzScorekeeper() {
 
     if (nextTeam >= teams.length) {
       setInputPhase('pile');
-      setPileScoresTemp(Array(teams.length).fill(0));
+      // Keep any pile scores already entered (user may have backed up from pile phase)
+      setPileScoresTemp(prev => {
+        const next = Array(teams.length).fill(0);
+        prev.forEach((v, i) => { if (i < teams.length) next[i] = v; });
+        return next;
+      });
       setCurrentInputTeam(0);
+      prefillInput(pileScoresTemp[0]);
     } else {
       setCurrentInputTeam(nextTeam);
+      prefillInput(nextHandTemp[nextTeam]);
     }
   };
 
@@ -430,36 +510,35 @@ export default function NertzScorekeeper() {
     const nextPileTemp = [...pileScoresTemp];
     nextPileTemp[currentInputTeam] = value;
     setPileScoresTemp(nextPileTemp);
-    setTempInput('');
 
     const nextTeam = currentInputTeam + 1;
     if (nextTeam >= teams.length) {
-      // Apply this round's hand + pile to teams, then go to standings or results
-      const roundDelta = (i: number) => -2 * handScoresTemp[i] + nextPileTemp[i];
-      setTeams(prev => prev.map((t, i) => ({
-        ...t,
-        score: t.score + roundDelta(i),
-        cardsInHand: handScoresTemp[i],
-        cardsInPile: nextPileTemp[i]
-      })));
-      const previewScores = teams.map((t, i) => t.score + roundDelta(i));
-      const hasWinner = previewScores.some(s => s >= 50);
+      // All entries in. Scores stay uncommitted while standings preview them;
+      // they're committed once on Continue (or immediately on game over).
+      setTempInput('');
+      inputPrefilledRef.current = false;
+      const previewScores = teams.map((t, i) => t.score + roundDelta(i, nextPileTemp));
+      const hasWinner = previewScores.some(s => s >= targetScore);
       if (hasWinner) {
+        applyRoundScores(nextPileTemp);
         setGameState('results');
       } else {
         setGameState('roundStandings');
       }
     } else {
       setCurrentInputTeam(nextTeam);
+      prefillInput(nextPileTemp[nextTeam]);
     }
   };
 
   const startNextRound = () => {
+    // Commit this round's scores; a second tap of Continue is a no-op
+    if (!applyRoundScores(pileScoresTemp)) return;
     setCurrentRound(c => c + 1);
     startRound();
     setCountdownNumber(3);
     setGameState('countdown');
-    
+
     // Play countdown audio
     const audio = new Audio(countdownAudio);
     audio.volume = 0.4;
@@ -478,6 +557,10 @@ export default function NertzScorekeeper() {
     setHandScoresTemp([]);
     setPileScoresTemp([]);
     setShowHistory(false);
+    setViewingEntry(null);
+    setShowSettings(false);
+    inputPrefilledRef.current = false;
+    roundAppliedRef.current = false;
     savedResultsRef.current = false;
     exitCompleteFiredRef.current = false; // allow next exit hold to save to history
     loadedHistoryIdRef.current = null; // fresh start; next save will append, not update
@@ -496,61 +579,123 @@ export default function NertzScorekeeper() {
       tempInput,
       handScoresTemp: [...handScoresTemp],
       pileScoresTemp: [...pileScoresTemp],
+      targetScore,
+      scoresApplied: roundAppliedRef.current,
     };
   }
 
+  // Previous team in hand-entry order (skips the round winner); null if none before.
+  const prevHandTeam = (from: number): number | null => {
+    for (let i = from - 1; i >= 0; i--) {
+      if (i !== roundWinner) return i;
+    }
+    return null;
+  };
+
+  // Last team in hand-entry order (skips the round winner).
+  const lastHandTeam = (): number => {
+    for (let i = teams.length - 1; i >= 0; i--) {
+      if (i !== roundWinner) return i;
+    }
+    return 0;
+  };
+
+  // Back from hand entry: previous team's hand entry, or winner selection
+  // if we're already on the first team. Entered scores are kept.
   const handleReturnFromHandInput = () => {
     playButtonClick();
-    setRoundWinner(null);
-    setHandScoresTemp([]);
-    setPileScoresTemp([]);
-    setTempInput('');
+    const prev = prevHandTeam(currentInputTeam);
+    if (prev !== null) {
+      setCurrentInputTeam(prev);
+      prefillInput(handScoresTemp[prev]);
+    } else {
+      setRoundWinner(null);
+      setTempInput('');
+      inputPrefilledRef.current = false;
+    }
   };
 
+  // Back from pile entry: previous team's pile entry, or the last team's
+  // hand entry if we're on the first pile team. Entered scores are kept.
   const handleReturnFromPileInput = () => {
     playButtonClick();
-    const firstHandTeam = Math.min(roundWinner === 0 ? 1 : 0, teams.length - 1);
-    setInputPhase('hand');
-    setCurrentInputTeam(firstHandTeam);
-    setTempInput(String(handScoresTemp[firstHandTeam] ?? ''));
+    if (currentInputTeam > 0) {
+      const prev = currentInputTeam - 1;
+      setCurrentInputTeam(prev);
+      prefillInput(pileScoresTemp[prev]);
+    } else {
+      const last = lastHandTeam();
+      setInputPhase('hand');
+      setCurrentInputTeam(last);
+      prefillInput(handScoresTemp[last]);
+    }
   };
 
+  // Back from winner selection: resume the round (NERTZ may have been a mis-tap).
+  const handleReturnFromWinnerSelect = () => {
+    playButtonClick();
+    setGameState('game');
+  };
+
+  // Back from standings: one step back to the last team's pile entry, with all
+  // entered values preserved. Scores were never committed, so nothing to undo.
   const handleReturnFromRoundStandings = () => {
     playButtonClick();
-    const hand = (i: number) => handScoresTemp[i] ?? 0;
-    const pile = (i: number) => pileScoresTemp[i] ?? 0;
-    setTeams(prev => prev.map((t, i) => ({
-      ...t,
-      score: t.score - (-2 * hand(i) + pile(i)),
-      cardsInHand: 0,
-      cardsInPile: 0
-    })));
+    const last = Math.max(0, teams.length - 1);
     setGameState('roundEnd');
     setInputPhase('pile');
-    setCurrentInputTeam(0);
-    setTempInput(String(pile(0)));
+    setCurrentInputTeam(last);
+    prefillInput(pileScoresTemp[last]);
   };
 
   const loadGame = (entry: NertzHistoryEntry) => {
     if (entry.completed || !isSnapshotLoadable(entry)) return;
     loadedHistoryIdRef.current = entry.id; // so we update this entry on exit/complete instead of appending
     const s = entry.snapshot;
+    const teamCount = s.teams.length;
+    let loadedTeams = s.teams.map(t => ({ ...t }));
+    if (s.gameState === 'roundStandings' && s.scoresApplied !== false) {
+      // Legacy snapshot: standings were saved with the round already applied.
+      // Un-apply so the commit-once flow (Continue commits) doesn't double count.
+      const hand = s.handScoresTemp ?? [];
+      const pile = s.pileScoresTemp ?? [];
+      loadedTeams = loadedTeams.map((t, i) => ({
+        ...t,
+        score: t.score - (-2 * (hand[i] ?? 0) + (pile[i] ?? 0)),
+      }));
+    }
     setGameState(s.gameState);
     setDeckType(s.deckType);
-    setTeams(s.teams.map(t => ({ ...t })));
+    setTeams(loadedTeams);
     setSelectedColors([...s.selectedColors]);
-    setCurrentRound(s.currentRound);
-    setRoundWinner(s.roundWinner);
-    setCurrentInputTeam(s.currentInputTeam);
-    setInputPhase(s.inputPhase);
+    setCurrentRound(Math.max(1, s.currentRound || 1));
+    // Clamp indices so a stale/corrupt snapshot can't index out of bounds and crash
+    setRoundWinner(
+      s.roundWinner != null && s.roundWinner >= 0 && s.roundWinner < teamCount
+        ? s.roundWinner
+        : null
+    );
+    setCurrentInputTeam(Math.min(Math.max(0, s.currentInputTeam || 0), teamCount - 1));
+    setInputPhase(s.inputPhase === 'pile' ? 'pile' : 'hand');
     setTempInput(s.tempInput ?? '');
+    inputPrefilledRef.current = false;
+    roundAppliedRef.current = false; // resumed round's scores are not committed yet
     setHandScoresTemp([...(s.handScoresTemp ?? [])]);
     setPileScoresTemp([...(s.pileScoresTemp ?? [])]);
+    if (typeof s.targetScore === 'number' && s.targetScore > 0) {
+      setTargetScore(s.targetScore);
+    }
     if (s.gameState === 'countdown') setCountdownNumber(3);
     setShowHistory(false);
   };
 
   const sortedTeams = [...teams].sort((a, b) => b.score - a.score);
+
+  // Standings preview: committed scores plus the in-progress round's
+  // not-yet-committed delta (committed on Continue / game over)
+  const standingsPreviewTeams = teams
+    .map((t, i) => ({ ...t, score: t.score + roundDelta(i, pileScoresTemp) }))
+    .sort((a, b) => b.score - a.score);
 
   // Play button click sound
   const playButtonClick = () => {
@@ -627,6 +772,7 @@ export default function NertzScorekeeper() {
     playButtonClick();
     if (value === 'backspace') {
       setTempInput(tempInput.slice(0, -1));
+      inputPrefilledRef.current = false;
     } else if (value === 'enter') {
       // Submit based on current phase
       if (inputPhase === 'hand') {
@@ -634,8 +780,12 @@ export default function NertzScorekeeper() {
       } else {
         submitPileCards();
       }
-    } else {
-      // Append number
+    } else if (inputPrefilledRef.current) {
+      // First digit after back-navigation replaces the prefilled value
+      setTempInput(value);
+      inputPrefilledRef.current = false;
+    } else if (tempInput.length < MAX_INPUT_DIGITS) {
+      // Append number (capped; a Nertz count never needs more digits)
       setTempInput(tempInput + value);
     }
   };
@@ -650,15 +800,14 @@ export default function NertzScorekeeper() {
   }, []);
 
   return (
-    <div 
+    <div
       className="flex flex-col relative w-full h-full min-h-full"
       style={{
+        backgroundColor: BACKGROUND_ORANGE,
         backgroundImage: `url(${nertzBackground})`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundRepeat: 'no-repeat',
-        backgroundAttachment: 'fixed',
-        minHeight: '-webkit-fill-available',
         overflow: 'hidden',
         position: 'absolute',
         top: 0,
@@ -674,7 +823,17 @@ export default function NertzScorekeeper() {
         ))}
       </div>
       
-      <div className="w-full h-full flex flex-col overflow-hidden">
+      {/* Content is inset from the notch / home indicator; the background above stays edge-to-edge */}
+      <div
+        className="w-full h-full flex flex-col overflow-hidden"
+        style={{
+          paddingTop: 'env(safe-area-inset-top, 0px)',
+          paddingRight: 'env(safe-area-inset-right, 0px)',
+          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+          paddingLeft: 'env(safe-area-inset-left, 0px)',
+          boxSizing: 'border-box'
+        }}
+      >
         <AnimatePresence mode="wait">
           {gameState === 'home' && (
             <motion.div
@@ -753,7 +912,16 @@ export default function NertzScorekeeper() {
                       )}
                     </motion.button>
                   ) : (
-                    <div className="w-16 h-16 sm:w-20 sm:h-20"></div>
+                    <motion.button
+                      onClick={() => { playButtonClick(); setShowSettings(true); }}
+                      whileHover={{ scale: 1.15, rotate: 15 }}
+                      whileTap={{ scale: 0.85 }}
+                      className="w-16 h-16 sm:w-20 sm:h-20 bg-transparent p-0 border-0 outline-none focus:outline-none"
+                      style={{ background: 'transparent', border: 'none', outline: 'none', filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.3))' }}
+                      aria-label="Game settings"
+                    >
+                      <img src={gearIcon} alt="Settings" className="w-full h-full object-contain" />
+                    </motion.button>
                   )}
                 </div>
               </div>
@@ -1085,52 +1253,6 @@ export default function NertzScorekeeper() {
             </motion.div>
           )}
 
-          {/* View game overlay (completed or incomplete; when viewingEntry is set) */}
-          {gameState === 'home' && viewingEntry != null && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60"
-              onClick={() => setViewingEntry(null)}
-            >
-              <motion.div
-                initial={{ scale: 0.9, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.9, opacity: 0 }}
-                onClick={e => e.stopPropagation()}
-                className="rounded-3xl shadow-2xl p-6 max-w-md w-full max-h-[80vh] overflow-y-auto"
-                style={{ background: '#f7ebe1', fontFamily: "'Comic Neue', 'Comic Sans MS', cursive" }}
-              >
-                <h3 className="text-2xl font-black text-gray-800 mb-2">
-                  {viewingEntry.completed ? 'Final Standings' : 'Current Standings'}
-                </h3>
-                <p className="text-sm text-gray-600 mb-4">
-                  {new Date(viewingEntry.savedAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
-                </p>
-                <ul className="space-y-2">
-                  {[...viewingEntry.snapshot.teams]
-                    .sort((a, b) => b.score - a.score)
-                    .map((team, i) => (
-                      <li key={team.name} className="flex justify-between items-center py-2 border-b border-[#d4c4b0] last:border-0">
-                        <span className="font-bold text-gray-700">#{i + 1} {team.name}</span>
-                        <span className="font-black" style={{ color: team.color }}>{team.score}</span>
-                      </li>
-                    ))}
-                </ul>
-                <motion.button
-                  onClick={() => { playButtonClick(); setViewingEntry(null); }}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="mt-6 w-full py-3 rounded-xl font-bold text-white"
-                  style={{ background: BICYCLE_ORANGE }}
-                >
-                  Close
-                </motion.button>
-              </motion.div>
-            </motion.div>
-          )}
-
           {gameState === 'countdown' && (
             <motion.div
               key="countdown"
@@ -1224,9 +1346,20 @@ export default function NertzScorekeeper() {
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0 }}
-              className="h-full flex flex-col items-center justify-center text-center px-4 overflow-hidden"
+              className="h-full flex flex-col items-center justify-center text-center px-4 overflow-hidden relative"
             >
-              <h2 
+              {/* Return button - resume the round in case NERTZ was tapped by accident */}
+              <motion.button
+                onClick={handleReturnFromWinnerSelect}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="absolute top-4 right-4 sm:top-6 sm:right-6 z-10 w-14 h-14 sm:w-20 sm:h-20 flex items-center justify-center rounded-full bg-white/90 border-2 border-gray-300 shadow-lg"
+                aria-label="Back to round"
+              >
+                <img src={arrowIcon} alt="Back" className="w-6 h-6 sm:w-8 sm:h-8 object-contain" />
+              </motion.button>
+
+              <h2
                 className="text-7xl sm:text-8xl font-black mb-8"
                 style={{ 
                   color: '#ffffff',
@@ -1749,6 +1882,13 @@ export default function NertzScorekeeper() {
                 Round {currentRound} Complete!
               </motion.h2>
 
+              <p
+                className="text-lg sm:text-xl font-bold -mt-2 mb-4 sm:-mt-8 sm:mb-8"
+                style={{ color: '#fff', fontFamily: "'Comic Neue', 'Comic Sans MS', cursive", textShadow: '1px 1px 3px rgba(0,0,0,0.5)' }}
+              >
+                First to {targetScore} wins
+              </p>
+
               {/* Modular Plaque System - tighter spacing on narrow breakpoint */}
               <div className="relative max-w-2xl w-full mb-4 sm:mb-12">
                 {/* Top Plaque with "Current Standings" Banner */}
@@ -1761,7 +1901,7 @@ export default function NertzScorekeeper() {
                 
                 {/* Middle Section - One per team; row height smaller on narrow */}
                 <div className="relative" style={{ marginTop: '-2px', marginBottom: '-2px' }}>
-                  {[...teams].sort((a, b) => b.score - a.score).map((team, i) => (
+                  {standingsPreviewTeams.map((team, i) => (
                     <div key={team.name} className="relative h-20 sm:h-[100px]">
                       {/* Background Middle Plaque */}
                       <img 
@@ -2015,6 +2155,111 @@ export default function NertzScorekeeper() {
                   </div>
                 </div>
               </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Overlays: outside the mode="wait" AnimatePresence above so they stack on top of the home screen instead of replacing it */}
+        <AnimatePresence>
+          {/* View game overlay (completed or incomplete; when viewingEntry is set) */}
+          {gameState === 'home' && viewingEntry != null && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60"
+              onClick={() => setViewingEntry(null)}
+            >
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.9, opacity: 0 }}
+                onClick={e => e.stopPropagation()}
+                className="rounded-3xl shadow-2xl p-6 max-w-md w-full max-h-[80vh] overflow-y-auto"
+                style={{ background: '#f7ebe1', fontFamily: "'Comic Neue', 'Comic Sans MS', cursive" }}
+              >
+                <h3 className="text-2xl font-black text-gray-800 mb-2">
+                  {viewingEntry.completed ? 'Final Standings' : 'Current Standings'}
+                </h3>
+                <p className="text-sm text-gray-600 mb-4">
+                  {new Date(viewingEntry.savedAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
+                </p>
+                <ul className="space-y-2">
+                  {[...viewingEntry.snapshot.teams]
+                    .sort((a, b) => b.score - a.score)
+                    .map((team, i) => (
+                      <li key={team.name} className="flex justify-between items-center py-2 border-b border-[#d4c4b0] last:border-0">
+                        <span className="font-bold text-gray-700">#{i + 1} {team.name}</span>
+                        <span className="font-black" style={{ color: team.color }}>{team.score}</span>
+                      </li>
+                    ))}
+                </ul>
+                <motion.button
+                  onClick={() => { playButtonClick(); setViewingEntry(null); }}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="mt-6 w-full py-3 rounded-xl font-bold text-white"
+                  style={{ background: BICYCLE_ORANGE }}
+                >
+                  Close
+                </motion.button>
+              </motion.div>
+            </motion.div>
+          )}
+
+          {/* Settings overlay: pick the score a team must reach to win */}
+          {gameState === 'home' && showSettings && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60"
+              onClick={() => setShowSettings(false)}
+            >
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.9, opacity: 0 }}
+                onClick={e => e.stopPropagation()}
+                className="rounded-3xl shadow-2xl p-6 max-w-md w-full"
+                style={{ background: '#f7ebe1', fontFamily: "'Comic Neue', 'Comic Sans MS', cursive" }}
+              >
+                <h3 className="text-2xl font-black text-gray-800 mb-2">Settings</h3>
+                <p className="text-sm text-gray-600 mb-4">
+                  Play to: first team to reach this score wins the game.
+                </p>
+                <div className="grid grid-cols-3 gap-2 mb-2">
+                  {TARGET_SCORE_OPTIONS.map(option => (
+                    <motion.button
+                      key={option}
+                      onClick={() => { playButtonClick(); setTargetScore(option); }}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      className="py-3 rounded-xl font-black text-lg border-2"
+                      style={{
+                        background: targetScore === option ? BICYCLE_ORANGE : '#fff',
+                        borderColor: targetScore === option ? '#d65a0f' : '#d4c4b0',
+                        color: targetScore === option ? '#fff' : '#5c4a3d',
+                        boxShadow: targetScore === option ? '0 2px 8px rgba(241,120,33,0.4)' : 'none',
+                      }}
+                    >
+                      {option}
+                    </motion.button>
+                  ))}
+                </div>
+                <p className="text-sm text-gray-600 mb-4">
+                  Current: first to <span className="font-black" style={{ color: BICYCLE_ORANGE }}>{targetScore}</span> points
+                </p>
+                <motion.button
+                  onClick={() => { playButtonClick(); setShowSettings(false); }}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="w-full py-3 rounded-xl font-bold text-white"
+                  style={{ background: BICYCLE_ORANGE }}
+                >
+                  Done
+                </motion.button>
+              </motion.div>
             </motion.div>
           )}
         </AnimatePresence>
