@@ -3,6 +3,7 @@ import './Homepage.css'
 import ScrabbleLogo from './assets/Scrabble_2022.svg?react'
 import OddOneOutLogo from './assets/OddOneOut.png'
 import NertzLogo from './assets/Nertz/nertzApp.png'
+import TabooLogo from './assets/Taboo/tabooLogo.svg?react'
 
 interface Game {
   id: number
@@ -13,7 +14,8 @@ interface Game {
 }
 
 const games: Game[] = [
-  { id: 1, name: 'Odd One Out', image: OddOneOutLogo, route: '/odd-one-out' }
+  { id: 1, name: 'Odd One Out', image: OddOneOutLogo, route: '/odd-one-out' },
+  { id: 4, name: 'Taboo', svg: TabooLogo, route: '/taboo' }
 ]
 
 const scoreKeepers: Game[] = [
