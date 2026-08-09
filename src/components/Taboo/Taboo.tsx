@@ -116,13 +116,20 @@ function Taboo() {
   const [currentCard, setCurrentCard] = useState<TabooCard | null>(null);
   const [turnLog, setTurnLog] = useState<TurnCard[]>([]);
   const [timeLeft, setTimeLeft] = useState(settings.turnSeconds);
+  // Absolute epoch ms the turn ends. State, not a ref: the wave reads it during
+  // render to interpolate its own level, so a stale value would freeze the tide.
+  const [turnEndsAt, setTurnEndsAt] = useState(0);
   const [winner, setWinner] = useState<number | null>(null); // null during play; -1 = tie shown on gameOver
 
   // Deck: shuffled indices into TABOO_CARDS, advancing across the whole game
   const deckRef = useRef<number[]>([]);
   const deckPosRef = useRef(0);
-  const endTimeRef = useRef(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Card in a ref so drawing the next one doesn't tear down and restart the
+  // timer interval on every button press.
+  const currentCardRef = useRef<TabooCard | null>(null);
+  // Last whole-second value pushed to state, so the header repaints at 1 Hz.
+  const lastShownRef = useRef(-1);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const musicRef = useRef<HTMLAudioElement | null>(null);
   const buzzerRef = useRef<HTMLAudioElement | null>(null);
@@ -320,11 +327,16 @@ function Taboo() {
     playUi('start');
     setTurnLog([]);
     setCurrentCard(drawCard());
-    endTimeRef.current = Date.now() + settings.turnSeconds * 1000;
+    setTurnEndsAt(Date.now() + settings.turnSeconds * 1000);
     setTimeLeft(settings.turnSeconds);
+    lastShownRef.current = settings.turnSeconds;
     musicStartedRef.current = false;
     setScreen('turn');
   };
+
+  useEffect(() => {
+    currentCardRef.current = currentCard;
+  }, [currentCard]);
 
   const markOutcome = (outcome: Outcome) => {
     if (!currentCard) return;
@@ -339,10 +351,15 @@ function Taboo() {
   useEffect(() => {
     if (screen !== 'turn') return;
     timerRef.current = setInterval(() => {
-      const remainingMs = endTimeRef.current - Date.now();
-      // Fractional seconds so the wave drains continuously, not in 1s steps
+      const remainingMs = turnEndsAt - Date.now();
       const remaining = Math.max(0, remainingMs / 1000);
-      setTimeLeft(remaining);
+      // The wave interpolates its own level from endsAt at rAF, so state only
+      // has to carry the whole-second readout — one render a second, not 20.
+      const shown = Math.ceil(remaining);
+      if (shown !== lastShownRef.current) {
+        lastShownRef.current = shown;
+        setTimeLeft(shown);
+      }
       // Final 15 seconds: lobby music kicks in (once per turn)
       if (remaining > 0 && remaining <= 15 && !musicStartedRef.current) {
         musicStartedRef.current = true;
@@ -354,9 +371,8 @@ function Taboo() {
       }
       if (remainingMs <= 0) {
         // Time's up: the card in play counts for nothing (correctable on review)
-        setTurnLog((log) =>
-          currentCard ? [...log, { card: currentCard, outcome: 'expired' }] : log
-        );
+        const inPlay = currentCardRef.current;
+        setTurnLog((log) => (inPlay ? [...log, { card: inPlay, outcome: 'expired' }] : log));
         setCurrentCard(null);
         const music = musicRef.current;
         if (music) {
@@ -372,7 +388,7 @@ function Taboo() {
       if (timerRef.current) clearInterval(timerRef.current);
       timerRef.current = null;
     };
-  }, [screen, currentCard, playClip]);
+  }, [screen, turnEndsAt, playClip]);
 
   // ---- Review / scoring ----
   const cycleOutcome = (index: number) => {
@@ -489,13 +505,20 @@ function Taboo() {
         <div className="taboo-wave-bg">
           <WaveTimer
             duration={settings.turnSeconds}
-            remaining={timeLeft}
+            /* Deadline mode: the wave interpolates at rAF off the same clock
+               the scoring uses, so it stays smooth however slowly we tick. We
+               keep our own expiry handling and pass no onComplete, since the
+               interval also logs the dead card, stops the music, and buzzes. */
+            endsAt={turnEndsAt}
             showReadout={false}
+            /* The sea gets choppy exactly when the lobby music starts */
+            waveSpeed={timeLeft <= 15 ? 2.6 : 1.1}
+            waveHeight={timeLeft <= 15 ? 0.05 : 0.028}
             theme={{
               deep: '#2a1145',
               violet: '#5b2a86',
               glow: '#fa7268',
-              foam: '#fdf6f5',
+              foam: '#f2e3dc',
               crest: '#ffffff',
             }}
           />
@@ -742,7 +765,7 @@ function Taboo() {
               <span
                 className={`taboo-timer text-4xl ${timeLeft <= 10 ? 'text-red-400 taboo-pulse' : 'text-white'}`}
               >
-                {Math.ceil(timeLeft)}
+                {timeLeft}
               </span>
             </div>
             <div className="flex-1 flex items-center w-full">

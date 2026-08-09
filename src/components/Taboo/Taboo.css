@@ -98,12 +98,13 @@
 
 /* The playing card: coral header (guess word) + white body (taboo words) */
 .taboo-card {
-  background: #fffdf7;
+  background: #ffffff;
   border-radius: 20px;
   overflow: hidden;
-  /* Outline keeps the card readable when the white tide is behind it */
-  border: 2px solid rgba(61, 26, 99, 0.25);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  /* The tide behind this card is a warm cream, so the card needs its own hard
+     edge and a dark drop shadow or it dissolves into the foam mid-turn. */
+  border: 3px solid #3d1a63;
+  box-shadow: 0 10px 0 rgba(61, 26, 99, 0.35), 0 18px 30px rgba(0, 0, 0, 0.35);
 }
 
 .taboo-card-header {
