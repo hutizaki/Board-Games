@@ -60,22 +60,31 @@ const PENALTY_RULES: { id: PenaltyRule; label: string }[] = [
   { id: 'none', label: 'No penalty' },
 ];
 
+/** Which side takes the first turn. 'random' is decided when the game starts. */
+type FirstTeam = 'random' | 'a' | 'b';
+/** Whether clue givers follow the team list or a shuffled order. */
+type ClueOrder = 'random' | 'list';
+
 interface TabooSettings {
   turnSeconds: number;
   buzzPenalty: PenaltyRule;
   passPenalty: PenaltyRule;
+  firstTeam: FirstTeam;
+  clueOrder: ClueOrder;
 }
 
 const DEFAULT_SETTINGS: TabooSettings = {
   turnSeconds: 60,
   buzzPenalty: 'opponent',
   passPenalty: 'opponent',
+  firstTeam: 'random',
+  clueOrder: 'random',
 };
 
 const SETTINGS_KEY = 'taboo_settings';
 
 /** Shown on the home screen only, so a phone can be checked at a glance. */
-const APP_VERSION = 'v.1.1';
+const APP_VERSION = 'v.1.2';
 
 const PURPLE_BG = '#3d1a63';
 
@@ -118,6 +127,8 @@ function loadSettings(): TabooSettings {
         parsed.passPenalty ??
         (parsed as { penaltyStyle?: PenaltyRule }).penaltyStyle ??
         DEFAULT_SETTINGS.passPenalty,
+      firstTeam: parsed.firstTeam ?? DEFAULT_SETTINGS.firstTeam,
+      clueOrder: parsed.clueOrder ?? DEFAULT_SETTINGS.clueOrder,
     };
   } catch {
     return DEFAULT_SETTINGS;
@@ -157,6 +168,20 @@ function Taboo() {
   const [turnsCompleted, setTurnsCompleted] = useState(0);
   // Extra rounds added by sudden-death ties in fixed-rounds mode
   const [bonusRounds, setBonusRounds] = useState(0);
+  // Decided at kick-off: which side takes turn one, and each team's running
+  // order of clue givers (player ids).
+  const [startingTeam, setStartingTeam] = useState<0 | 1>(0);
+  const [clueOrders, setClueOrders] = useState<[number[], number[]]>([[], []]);
+  /**
+   * Everything the last Apply Scores changed, kept so the scoreboard can hand
+   * the turn back for a correction. A miscount is usually only noticed once the
+   * totals are on screen, and by then the turn has already been committed.
+   */
+  const [beforeApply, setBeforeApply] = useState<{
+    scores: [number, number];
+    turnsCompleted: number;
+    bonusRounds: number;
+  } | null>(null);
 
   const [currentCard, setCurrentCard] = useState<TabooCard | null>(null);
   const [turnLog, setTurnLog] = useState<TurnCard[]>([]);
@@ -182,18 +207,37 @@ function Taboo() {
   const boomRef = useRef<HTMLAudioElement | null>(null);
   const musicStartedRef = useRef(false);
 
-  const activeTeam = turnsCompleted % 2;
+  // Turns alternate from whichever side won the toss, so both teams still get
+  // an equal number and Math.floor(t / 2) is a team's own turn index either way.
+  const activeTeam = (turnsCompleted + startingTeam) % 2;
   const currentRound = Math.floor(turnsCompleted / 2) + 1;
   // Game length comes from the line-up: play until everyone has given clues
   // once. The bigger team sets the count so both teams still get equal turns.
   const lineUp = (team: number) => players.filter((p) => p.team === team);
   const roundsPerTeam = Math.max(lineUp(0).length, lineUp(1).length, 1);
   const totalRounds = roundsPerTeam + bonusRounds;
-  // Each team rotates through its own line-up, one new clue giver per round.
+  /**
+   * Each team works through its own running order, one new clue giver per
+   * round. The order is fixed when the game starts — shuffled, or the team list
+   * as entered — so nobody gives clues twice before everyone has gone once.
+   *
+   * Returns null once the whole team has had a turn, which happens to the
+   * smaller side of uneven teams and to both sides in sudden death. Rather than
+   * naming someone a second time, the app steps back and lets the team appoint
+   * whoever they want.
+   */
   const clueGiver = (team: number): string | null => {
     const list = lineUp(team);
     if (list.length === 0) return null;
-    return list[Math.floor(turnsCompleted / 2) % list.length].name;
+    const index = Math.floor(turnsCompleted / 2);
+    if (index >= list.length) return null;
+    const order = clueOrders[team];
+    // Fall back to list order if the running order is missing or stale
+    if (order.length === list.length) {
+      const picked = players.find((p) => p.id === order[index]);
+      if (picked) return picked.name;
+    }
+    return list[index].name;
   };
 
   // ---- Page background while mounted (matches NERTZ pattern for iOS safe areas) ----
@@ -354,7 +398,7 @@ function Taboo() {
 
   // ---- Deck ----
   // One shoe for the whole sitting: the position carries across games so a
-  // group playing several in a row works through all 453 cards before any
+  // group playing several in a row works through the whole deck before any
   // repeat. It only reshuffles once genuinely exhausted.
   const drawCard = useCallback((): TabooCard => {
     if (deckRef.current.length === 0 || deckPosRef.current >= deckRef.current.length) {
@@ -378,10 +422,38 @@ function Taboo() {
   }, [recents, players]);
 
   // ---- Game flow ----
+  /**
+   * Each team's running order for the game. Random by default so the first
+   * name typed in isn't always the first to give clues; shuffling the order
+   * (rather than drawing fresh each turn) keeps everyone going exactly once.
+   */
+  const buildClueOrders = (): [number[], number[]] => {
+    const orderFor = (team: 0 | 1) => {
+      const ids = players.filter((p) => p.team === team).map((p) => p.id);
+      if (settings.clueOrder === 'list') return ids;
+      for (let i = ids.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [ids[i], ids[j]] = [ids[j], ids[i]];
+      }
+      return ids;
+    };
+    return [orderFor(0), orderFor(1)];
+  };
+
   const startNewGame = () => {
     playUi('forward');
     // The deck deliberately isn't reset here — see drawCard. Reshuffling every
     // game would deal a chunk of already-seen cards to the same people.
+    setStartingTeam(
+      settings.firstTeam === 'random'
+        ? Math.random() < 0.5
+          ? 0
+          : 1
+        : settings.firstTeam === 'a'
+          ? 0
+          : 1
+    );
+    setClueOrders(buildClueOrders());
     setScores([0, 0]);
     setTurnsCompleted(0);
     setBonusRounds(0);
@@ -394,6 +466,7 @@ function Taboo() {
   const startTurn = () => {
     getAudioCtx(); // unlock audio on user gesture
     playUi('start');
+    setBeforeApply(null); // the previous turn is closed for corrections now
     setTurnLog([]);
     setCurrentCard(drawCard());
     setTurnEndsAt(Date.now() + settings.turnSeconds * 1000);
@@ -496,6 +569,8 @@ function Taboo() {
     (settings.passPenalty === 'minus' ? passCount : 0);
 
   const confirmTurn = () => {
+    // Snapshot first, so the scoreboard can undo this and come back for a fix
+    setBeforeApply({ scores: [...scores], turnsCompleted, bonusRounds });
     const newScores: [number, number] = [...scores];
     newScores[activeTeam] += correctCount - pointsOffActive;
     newScores[1 - activeTeam] += pointsToOpponent;
@@ -521,6 +596,21 @@ function Taboo() {
     }
     playUi('forward');
     setScreen('scoreboard');
+  };
+
+  /**
+   * Reopen the turn just scored. Rolls the applied points back off the board
+   * and returns to the card list; the same Apply Scores button then commits the
+   * corrected total, so the host never has to do the arithmetic themselves.
+   */
+  const revisitTurn = () => {
+    if (!beforeApply) return;
+    playUi('back');
+    setScores(beforeApply.scores);
+    setTurnsCompleted(beforeApply.turnsCompleted);
+    setBonusRounds(beforeApply.bonusRounds);
+    setBeforeApply(null);
+    setScreen('review');
   };
 
   /** Back to the line-up with the teams intact, so players can be swapped. */
@@ -714,6 +804,57 @@ function Taboo() {
             </div>
 
             <div className="taboo-panel">
+              <label className="taboo-label">Who goes first</label>
+              <div className="flex gap-2">
+                {(
+                  [
+                    { id: 'random', label: 'Random' },
+                    { id: 'a', label: teamNames[0] || 'Team A' },
+                    { id: 'b', label: teamNames[1] || 'Team B' },
+                  ] as { id: FirstTeam; label: string }[]
+                ).map((opt) => (
+                  <button
+                    key={opt.id}
+                    className={`taboo-chip flex-1 truncate ${settings.firstTeam === opt.id ? 'taboo-chip-active' : ''}`}
+                    onClick={() => {
+                      playUi('select');
+                      setSettings({ ...settings, firstTeam: opt.id });
+                    }}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="taboo-panel">
+              <label className="taboo-label">Clue giver order</label>
+              <div className="flex gap-2">
+                {(
+                  [
+                    { id: 'random', label: 'Shuffled' },
+                    { id: 'list', label: 'Team list order' },
+                  ] as { id: ClueOrder; label: string }[]
+                ).map((opt) => (
+                  <button
+                    key={opt.id}
+                    className={`taboo-chip flex-1 ${settings.clueOrder === opt.id ? 'taboo-chip-active' : ''}`}
+                    onClick={() => {
+                      playUi('select');
+                      setSettings({ ...settings, clueOrder: opt.id });
+                    }}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+              <p className="text-xs text-white/60 mt-2">
+                Shuffled draws a fresh order each game, so the first name typed in isn't always
+                first up. Either way everyone gives clues once before anyone repeats.
+              </p>
+            </div>
+
+            <div className="taboo-panel">
               <label className="taboo-label">🚨 Buzz penalty</label>
               <div className="flex gap-2">
                 {PENALTY_RULES.map((rule) => (
@@ -797,13 +938,20 @@ function Taboo() {
               {teamNames[activeTeam]}
             </div>
             <h2 className="taboo-logo-sm">
-              {clueGiver(activeTeam) ?? teamNames[activeTeam]}
+              {clueGiver(activeTeam) ?? `Anyone on ${teamNames[activeTeam]}`}
             </h2>
             <div className="taboo-panel text-left w-full">
-              <p className="mb-2">
-                📱 Hand the device to <strong>{clueGiver(activeTeam) ?? 'the clue giver'}</strong> —
-                you're giving clues this round.
-              </p>
+              {clueGiver(activeTeam) ? (
+                <p className="mb-2">
+                  📱 Hand the device to <strong>{clueGiver(activeTeam)}</strong> — you're giving
+                  clues this round.
+                </p>
+              ) : (
+                <p className="mb-2">
+                  📱 Everyone on <strong>{teamNames[activeTeam]}</strong> has given clues once, so
+                  the team picks whoever they like for this one.
+                </p>
+              )}
               <p className="mb-2">
                 👀 A player from <strong>{teamNames[1 - activeTeam]}</strong> watches the screen
                 over their shoulder and presses <strong>BUZZ</strong> on any slip-up.
@@ -957,6 +1105,9 @@ function Taboo() {
               }}
             >
               Next: {teamNames[activeTeam]}
+            </button>
+            <button className="taboo-btn taboo-btn-ghost w-full" onClick={revisitTurn}>
+              Back
             </button>
             <button className="taboo-btn taboo-btn-ghost w-full" onClick={endGameEarly}>
               End Game
