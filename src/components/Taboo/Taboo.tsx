@@ -50,19 +50,32 @@ type UiSound =
   | 'fanfare'
   | 'endGame';
 
-type PenaltyStyle = 'opponent' | 'minus';
+/** What a buzz or a pass costs. Buzzing and passing are set separately —
+ *  plenty of houses punish a slip-up but let people skip a hard card freely. */
+type PenaltyRule = 'opponent' | 'minus' | 'none';
+
+const PENALTY_RULES: { id: PenaltyRule; label: string }[] = [
+  { id: 'opponent', label: 'Opponent +1' },
+  { id: 'minus', label: 'Your team −1' },
+  { id: 'none', label: 'No penalty' },
+];
 
 interface TabooSettings {
   turnSeconds: number;
-  penaltyStyle: PenaltyStyle;
+  buzzPenalty: PenaltyRule;
+  passPenalty: PenaltyRule;
 }
 
 const DEFAULT_SETTINGS: TabooSettings = {
   turnSeconds: 60,
-  penaltyStyle: 'opponent',
+  buzzPenalty: 'opponent',
+  passPenalty: 'opponent',
 };
 
 const SETTINGS_KEY = 'taboo_settings';
+
+/** Shown on the home screen only, so a phone can be checked at a glance. */
+const APP_VERSION = 'v.1.1';
 
 const PURPLE_BG = '#3d1a63';
 
@@ -96,7 +109,15 @@ function loadSettings(): TabooSettings {
     // don't get carried forward and re-saved.
     return {
       turnSeconds: parsed.turnSeconds ?? DEFAULT_SETTINGS.turnSeconds,
-      penaltyStyle: parsed.penaltyStyle ?? DEFAULT_SETTINGS.penaltyStyle,
+      // Older saves had one combined rule; carry it onto both.
+      buzzPenalty:
+        parsed.buzzPenalty ??
+        (parsed as { penaltyStyle?: PenaltyRule }).penaltyStyle ??
+        DEFAULT_SETTINGS.buzzPenalty,
+      passPenalty:
+        parsed.passPenalty ??
+        (parsed as { penaltyStyle?: PenaltyRule }).penaltyStyle ??
+        DEFAULT_SETTINGS.passPenalty,
     };
   } catch {
     return DEFAULT_SETTINGS;
@@ -332,6 +353,9 @@ function Taboo() {
 
 
   // ---- Deck ----
+  // One shoe for the whole sitting: the position carries across games so a
+  // group playing several in a row works through all 453 cards before any
+  // repeat. It only reshuffles once genuinely exhausted.
   const drawCard = useCallback((): TabooCard => {
     if (deckRef.current.length === 0 || deckPosRef.current >= deckRef.current.length) {
       deckRef.current = shuffledIndices(TABOO_CARDS.length);
@@ -356,8 +380,8 @@ function Taboo() {
   // ---- Game flow ----
   const startNewGame = () => {
     playUi('forward');
-    deckRef.current = shuffledIndices(TABOO_CARDS.length);
-    deckPosRef.current = 0;
+    // The deck deliberately isn't reset here — see drawCard. Reshuffling every
+    // game would deal a chunk of already-seen cards to the same people.
     setScores([0, 0]);
     setTurnsCompleted(0);
     setBonusRounds(0);
@@ -458,18 +482,23 @@ function Taboo() {
   };
 
   const correctCount = turnLog.filter((tc) => tc.outcome === 'correct').length;
-  const penaltyCount = turnLog.filter(
-    (tc) => tc.outcome === 'buzzed' || tc.outcome === 'passed'
-  ).length;
+  const buzzCount = turnLog.filter((tc) => tc.outcome === 'buzzed').length;
+  const passCount = turnLog.filter((tc) => tc.outcome === 'passed').length;
+  const penaltyCount = buzzCount + passCount;
+
+  /** Points this turn hands to the other team, per the two rules. */
+  const pointsToOpponent =
+    (settings.buzzPenalty === 'opponent' ? buzzCount : 0) +
+    (settings.passPenalty === 'opponent' ? passCount : 0);
+  /** Points this turn takes off the active team. */
+  const pointsOffActive =
+    (settings.buzzPenalty === 'minus' ? buzzCount : 0) +
+    (settings.passPenalty === 'minus' ? passCount : 0);
 
   const confirmTurn = () => {
     const newScores: [number, number] = [...scores];
-    newScores[activeTeam] += correctCount;
-    if (settings.penaltyStyle === 'opponent') {
-      newScores[1 - activeTeam] += penaltyCount;
-    } else {
-      newScores[activeTeam] -= penaltyCount;
-    }
+    newScores[activeTeam] += correctCount - pointsOffActive;
+    newScores[1 - activeTeam] += pointsToOpponent;
     setScores(newScores);
 
     const completed = turnsCompleted + 1;
@@ -649,6 +678,9 @@ function Taboo() {
             >
               Back to Games
             </button>
+            {/* Build marker: bump this when deploying, so it's obvious from the
+                home screen whether a phone has the new version yet. */}
+            <span className="taboo-version">{APP_VERSION}</span>
           </motion.div>
         )}
 
@@ -682,27 +714,43 @@ function Taboo() {
             </div>
 
             <div className="taboo-panel">
-              <label className="taboo-label">Buzz / pass penalty</label>
+              <label className="taboo-label">🚨 Buzz penalty</label>
               <div className="flex gap-2">
-                <button
-                  className={`taboo-chip flex-1 ${settings.penaltyStyle === 'opponent' ? 'taboo-chip-active' : ''}`}
-                  onClick={() => {
-                    playUi('select');
-                    setSettings({ ...settings, penaltyStyle: 'opponent' });
-                  }}
-                >
-                  Opponent +1
-                </button>
-                <button
-                  className={`taboo-chip flex-1 ${settings.penaltyStyle === 'minus' ? 'taboo-chip-active' : ''}`}
-                  onClick={() => {
-                    playUi('select');
-                    setSettings({ ...settings, penaltyStyle: 'minus' });
-                  }}
-                >
-                  Your team −1
-                </button>
+                {PENALTY_RULES.map((rule) => (
+                  <button
+                    key={rule.id}
+                    className={`taboo-chip flex-1 ${settings.buzzPenalty === rule.id ? 'taboo-chip-active' : ''}`}
+                    onClick={() => {
+                      playUi('select');
+                      setSettings({ ...settings, buzzPenalty: rule.id });
+                    }}
+                  >
+                    {rule.label}
+                  </button>
+                ))}
               </div>
+            </div>
+
+            <div className="taboo-panel">
+              <label className="taboo-label">Pass penalty</label>
+              <div className="flex gap-2">
+                {PENALTY_RULES.map((rule) => (
+                  <button
+                    key={rule.id}
+                    className={`taboo-chip flex-1 ${settings.passPenalty === rule.id ? 'taboo-chip-active' : ''}`}
+                    onClick={() => {
+                      playUi('select');
+                      setSettings({ ...settings, passPenalty: rule.id });
+                    }}
+                  >
+                    {rule.label}
+                  </button>
+                ))}
+              </div>
+              <p className="text-xs text-white/60 mt-2">
+                Official Taboo penalises a pass the same as a buzz. Set it to no penalty if
+                skipping a hard card should be free.
+              </p>
             </div>
 
             <p className="text-center text-sm text-white/70 px-2">
@@ -852,13 +900,24 @@ function Taboo() {
             </div>
             <div className="taboo-panel text-center">
               <div className="text-lg">
-                <strong>{teamNames[activeTeam]}</strong>: +{correctCount}
+                <strong>{teamNames[activeTeam]}</strong>:{' '}
+                {correctCount - pointsOffActive >= 0 ? '+' : ''}
+                {correctCount - pointsOffActive}
               </div>
               <div className="text-sm text-white/80">
-                {settings.penaltyStyle === 'opponent'
-                  ? `${teamNames[1 - activeTeam]}: +${penaltyCount} from penalties`
-                  : `Penalties: −${penaltyCount}`}
+                {correctCount} correct
+                {pointsOffActive > 0 && ` · −${pointsOffActive} penalty`}
               </div>
+              {pointsToOpponent > 0 && (
+                <div className="text-sm text-white/80">
+                  {teamNames[1 - activeTeam]}: +{pointsToOpponent}
+                </div>
+              )}
+              {penaltyCount > 0 && pointsToOpponent === 0 && pointsOffActive === 0 && (
+                <div className="text-sm text-white/60">
+                  {penaltyCount} buzz{penaltyCount === 1 ? '' : 'es'}/passes — no penalty
+                </div>
+              )}
             </div>
             <button className="taboo-btn taboo-btn-primary w-full mb-2" onClick={confirmTurn}>
               Apply Scores

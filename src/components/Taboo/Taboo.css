@@ -236,6 +236,14 @@
   border-color: #fa7268;
 }
 
+/* Home screen build marker: present but never competing for attention */
+.taboo-version {
+  margin-top: 0.25rem;
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.28);
+}
+
 /* In-game menu handle: parked out of the thumb's way, above the backdrops */
 .taboo-menu-btn {
   position: fixed;
