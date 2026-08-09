@@ -7,6 +7,7 @@ import lobbyMusicSrc from '../../assets/audio/kahoot-lobby-music.mp3';
 import buzzerSrc from '../../assets/audio/buzzer.mp3';
 import dingSrc from '../../assets/audio/ding.mp3';
 import tabooLogo from '../../assets/Taboo/tabooLogo.png';
+import tabooFace from '../../assets/Taboo/tabooFace.png';
 
 // ============ Types ============
 
@@ -420,6 +421,9 @@ function Taboo() {
         minHeight: '100dvh',
       }}
     >
+      {/* Home screen backdrop: the "shh" face sits behind all content */}
+      {screen === 'home' && <img src={tabooFace} alt="" className="taboo-face-bg" />}
+
       {/* Screens swap instantly with entry animations only — AnimatePresence
           mode="wait" exit transitions hang under React StrictMode in dev. */}
       <>
@@ -430,7 +434,7 @@ function Taboo() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="flex flex-col items-center justify-center flex-1 w-full max-w-sm gap-6"
+            className="relative z-10 flex flex-col items-center justify-center flex-1 w-full max-w-sm gap-6"
           >
             <img src={tabooLogo} alt="Taboo" className="w-full max-w-xs" />
             <p className="taboo-heading text-center text-lg -mt-2">

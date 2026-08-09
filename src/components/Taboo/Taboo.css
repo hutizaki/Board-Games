@@ -5,6 +5,17 @@
    Permanent Marker gives buttons a playful hand-drawn contrast. */
 @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Permanent+Marker&display=swap');
 
+/* Home screen backdrop: giant "shh" face behind the menu */
+.taboo-face-bg {
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  width: min(110vw, 40rem);
+  max-width: none;
+  opacity: 0.22;
+  z-index: 0;
+}
+
 .taboo-logo-sm {
   font-family: 'Bebas Neue Pro', 'Bebas Neue', 'Arial Narrow', sans-serif;
   font-weight: 700;
