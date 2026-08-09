@@ -82,6 +82,7 @@
   padding: 0.9rem 1.25rem;
   font-family: 'Permanent Marker', 'Comic Sans MS', cursive;
   font-weight: 400; /* Permanent Marker has a single weight; faux-bold distorts it */
+  letter-spacing: 0.06em;
   font-size: 1.15rem;
   color: #ffffff;
   box-shadow: 0 4px 0 rgba(0, 0, 0, 0.3);
