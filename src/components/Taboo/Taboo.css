@@ -1,7 +1,11 @@
 /* Taboo Global Styles — purple + coral theme matching the classic box art */
 
+/* Bebas Neue Pro is the licensed cut; free Bebas Neue from Google Fonts is the
+   web fallback so the game looks right on any device */
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap');
+
 .taboo-logo {
-  font-family: 'Comic Neue', 'Comic Sans MS', cursive;
+  font-family: 'Bebas Neue Pro', 'Bebas Neue', 'Arial Narrow', sans-serif;
   font-weight: 700;
   font-size: 5rem;
   line-height: 1;
@@ -12,7 +16,7 @@
 }
 
 .taboo-logo-sm {
-  font-family: 'Comic Neue', 'Comic Sans MS', cursive;
+  font-family: 'Bebas Neue Pro', 'Bebas Neue', 'Arial Narrow', sans-serif;
   font-weight: 700;
   font-size: 2.5rem;
   line-height: 1.1;
@@ -22,14 +26,14 @@
 
 .taboo-heading {
   color: #ffffff;
-  font-family: 'Comic Neue', 'Comic Sans MS', cursive;
+  font-family: 'Bebas Neue Pro', 'Bebas Neue', 'Arial Narrow', sans-serif;
   font-weight: 700;
   text-shadow: 1px 2px 3px rgba(0, 0, 0, 0.4);
 }
 
 .taboo-timer {
   font-variant-numeric: tabular-nums;
-  font-family: 'Comic Neue', 'Comic Sans MS', cursive;
+  font-family: 'Bebas Neue Pro', 'Bebas Neue', 'Arial Narrow', sans-serif;
 }
 
 /* The playing card: coral header (guess word) + white body (taboo words) */
@@ -43,7 +47,7 @@
 .taboo-card-header {
   background: #fa7268;
   color: #ffffff;
-  font-family: 'Comic Neue', 'Comic Sans MS', cursive;
+  font-family: 'Bebas Neue Pro', 'Bebas Neue', 'Arial Narrow', sans-serif;
   font-weight: 700;
   font-size: 2rem;
   line-height: 1.15;
@@ -75,7 +79,7 @@
   border: none;
   border-radius: 16px;
   padding: 0.9rem 1.25rem;
-  font-family: 'Comic Neue', 'Comic Sans MS', cursive;
+  font-family: 'Bebas Neue Pro', 'Bebas Neue', 'Arial Narrow', sans-serif;
   font-weight: 700;
   font-size: 1.15rem;
   color: #ffffff;
@@ -127,7 +131,7 @@
 
 .taboo-label {
   display: block;
-  font-family: 'Comic Neue', 'Comic Sans MS', cursive;
+  font-family: 'Bebas Neue Pro', 'Bebas Neue', 'Arial Narrow', sans-serif;
   font-weight: 700;
   color: #ffb4ae;
   margin-bottom: 0.5rem;

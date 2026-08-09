@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import './Taboo.css';
 import { TABOO_CARDS, type TabooCard } from './tabooCards';
+import lobbyMusicSrc from '../../assets/audio/kahoot-lobby-music.mp3';
+import buzzerSrc from '../../assets/audio/buzzer.mp3';
 
 // ============ Types ============
 
@@ -105,8 +107,10 @@ function Taboo() {
   const deckPosRef = useRef(0);
   const endTimeRef = useRef(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const lastTickSecondRef = useRef(-1);
   const audioCtxRef = useRef<AudioContext | null>(null);
+  const musicRef = useRef<HTMLAudioElement | null>(null);
+  const buzzerRef = useRef<HTMLAudioElement | null>(null);
+  const musicStartedRef = useRef(false);
 
   const activeTeam = turnsCompleted % 2;
   const currentRound = Math.floor(turnsCompleted / 2) + 1;
@@ -121,6 +125,21 @@ function Taboo() {
     return () => {
       document.body.style.backgroundColor = prevBody;
       document.documentElement.style.backgroundColor = prevHtml;
+    };
+  }, []);
+
+  // ---- Preload turn audio; stop music if the game unmounts mid-countdown ----
+  useEffect(() => {
+    musicRef.current = new Audio(lobbyMusicSrc);
+    musicRef.current.preload = 'auto';
+    musicRef.current.volume = 0.5;
+    buzzerRef.current = new Audio(buzzerSrc);
+    buzzerRef.current.preload = 'auto';
+    buzzerRef.current.volume = 0.6;
+    return () => {
+      musicRef.current?.pause();
+      musicRef.current = null;
+      buzzerRef.current = null;
     };
   }, []);
 
@@ -181,12 +200,6 @@ function Taboo() {
     playTone(330, 0.15, 'triangle', 0.2);
   }, [playTone]);
 
-  const playTimeUp = useCallback(() => {
-    playTone(880, 0.2, 'square', 0.2);
-    playTone(660, 0.2, 'square', 0.2, 0.22);
-    playTone(440, 0.4, 'square', 0.2, 0.44);
-    if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
-  }, [playTone]);
 
   // ---- Deck ----
   const drawCard = useCallback((): TabooCard => {
@@ -218,7 +231,7 @@ function Taboo() {
     setCurrentCard(drawCard());
     endTimeRef.current = Date.now() + settings.turnSeconds * 1000;
     setTimeLeft(settings.turnSeconds);
-    lastTickSecondRef.current = -1;
+    musicStartedRef.current = false;
     setScreen('turn');
   };
 
@@ -238,10 +251,14 @@ function Taboo() {
       const remainingMs = endTimeRef.current - Date.now();
       const remaining = Math.max(0, Math.ceil(remainingMs / 1000));
       setTimeLeft(remaining);
-      // Tick during the last 5 seconds, once per second
-      if (remaining > 0 && remaining <= 5 && lastTickSecondRef.current !== remaining) {
-        lastTickSecondRef.current = remaining;
-        playTone(1000, 0.05, 'square', 0.15);
+      // Final 15 seconds: lobby music kicks in (once per turn)
+      if (remaining > 0 && remaining <= 15 && !musicStartedRef.current) {
+        musicStartedRef.current = true;
+        const music = musicRef.current;
+        if (music) {
+          music.currentTime = 0;
+          music.play().catch(() => {});
+        }
       }
       if (remainingMs <= 0) {
         // Time's up: the card in play counts for nothing (correctable on review)
@@ -249,7 +266,17 @@ function Taboo() {
           currentCard ? [...log, { card: currentCard, outcome: 'expired' }] : log
         );
         setCurrentCard(null);
-        playTimeUp();
+        const music = musicRef.current;
+        if (music) {
+          music.pause();
+          music.currentTime = 0;
+        }
+        const buzzer = buzzerRef.current;
+        if (buzzer) {
+          buzzer.currentTime = 0;
+          buzzer.play().catch(() => {});
+        }
+        if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
         setScreen('review');
       }
     }, 100);
@@ -257,7 +284,7 @@ function Taboo() {
       if (timerRef.current) clearInterval(timerRef.current);
       timerRef.current = null;
     };
-  }, [screen, currentCard, playTone, playTimeUp]);
+  }, [screen, currentCard]);
 
   // ---- Review / scoring ----
   const cycleOutcome = (index: number) => {
