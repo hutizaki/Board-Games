@@ -259,7 +259,7 @@ export const WaveTimer = forwardRef<WaveTimerHandle, WaveTimerProps>(function Wa
     showReadout = true,
     children,
     theme: themeProp,
-    waveSpeed = 1.1,
+    waveSpeed = 1,
     waveHeight = 0.028,
     rippleWhilePaused = true,
     className,

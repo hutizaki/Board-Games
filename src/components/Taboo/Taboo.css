@@ -236,6 +236,143 @@
   border-color: #fa7268;
 }
 
+/* ---------------- Roster screen ---------------- */
+
+/* Team colours: everything tied to a team carries one of these */
+.taboo-team-tab-0,
+.taboo-team-panel-0,
+.taboo-pill-on-0,
+.taboo-roster-chip-0 {
+  --team: #fa7268;
+}
+
+.taboo-team-tab-1,
+.taboo-team-panel-1,
+.taboo-pill-on-1,
+.taboo-roster-chip-1 {
+  --team: #45c0b0;
+}
+
+/* Which team the next tap adds to */
+.taboo-team-tab {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.7rem 0.75rem;
+  border-radius: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  background: rgba(0, 0, 0, 0.25);
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.taboo-team-tab.is-active {
+  border-color: var(--team);
+  background: color-mix(in srgb, var(--team) 26%, rgba(0, 0, 0, 0.25));
+  box-shadow: 0 0 14px color-mix(in srgb, var(--team) 45%, transparent);
+}
+
+.taboo-team-count {
+  flex: none;
+  min-width: 1.6rem;
+  padding: 0.05rem 0.4rem;
+  border-radius: 999px;
+  background: var(--team);
+  color: #21103a;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+/* Suggestion pills: tap to put someone on the active team */
+.taboo-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border-radius: 999px;
+  padding: 0.45rem 0.85rem;
+  border: 2px solid rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.taboo-pill-on-0,
+.taboo-pill-on-1 {
+  border-color: var(--team);
+  background: color-mix(in srgb, var(--team) 30%, transparent);
+}
+
+.taboo-pill-mark {
+  font-size: 0.8rem;
+  opacity: 0.85;
+}
+
+/* Create a name the saved list has never seen */
+.taboo-add-new {
+  display: block;
+  width: 100%;
+  margin-top: 0.5rem;
+  border-radius: 12px;
+  padding: 0.6rem 0.8rem;
+  border: 2px dashed rgba(250, 114, 104, 0.8);
+  background: rgba(250, 114, 104, 0.16);
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+/* Team line-up chips: tap to take someone off */
+.taboo-roster-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border-radius: 999px;
+  padding: 0.4rem 0.75rem;
+  border: 2px solid var(--team);
+  background: color-mix(in srgb, var(--team) 24%, transparent);
+  color: #ffffff;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.taboo-team-panel-0,
+.taboo-team-panel-1 {
+  border-color: color-mix(in srgb, var(--team) 55%, transparent);
+}
+
+.taboo-team-name {
+  font-weight: 700;
+}
+
+.taboo-link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: #ffb4ae;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.taboo-link-block {
+  display: block;
+  width: 100%;
+  margin-top: 0.75rem;
+  text-align: left;
+}
+
+.taboo-btn:disabled {
+  opacity: 0.4;
+  box-shadow: none;
+}
+
 /* Review rows (tap to cycle outcome) */
 .taboo-review-row {
   display: flex;

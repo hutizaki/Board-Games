@@ -10,12 +10,23 @@ import boomSrc from '../../assets/audio/vine-boom.mp3';
 import tabooLogo from '../../assets/Taboo/tabooLogo.png';
 import tabooFace from '../../assets/Taboo/tabooFace.png';
 import WaveTimer from './WaveTimer';
+import {
+  getKnownPlayers,
+  rememberPlayers,
+  forgetPlayer,
+  loadRoster,
+  saveRoster,
+  normalizeName,
+  sameName,
+  MAX_NAME_LENGTH,
+} from './tabooRoster';
 
 // ============ Types ============
 
 type Screen =
   | 'home'
-  | 'setup'
+  | 'settings'
+  | 'roster'
   | 'handoff'
   | 'turn'
   | 'review'
@@ -41,22 +52,15 @@ type UiSound =
   | 'fanfare'
   | 'endGame';
 
-type GameMode = 'rounds' | 'target';
 type PenaltyStyle = 'opponent' | 'minus';
 
 interface TabooSettings {
   turnSeconds: number;
-  gameMode: GameMode;
-  roundsPerTeam: number;
-  targetScore: number;
   penaltyStyle: PenaltyStyle;
 }
 
 const DEFAULT_SETTINGS: TabooSettings = {
   turnSeconds: 60,
-  gameMode: 'rounds',
-  roundsPerTeam: 3,
-  targetScore: 25,
   penaltyStyle: 'opponent',
 };
 
@@ -81,7 +85,12 @@ function loadSettings(): TabooSettings {
     const raw = localStorage.getItem(SETTINGS_KEY);
     if (!raw) return DEFAULT_SETTINGS;
     const parsed = JSON.parse(raw) as Partial<TabooSettings>;
-    return { ...DEFAULT_SETTINGS, ...parsed };
+    // Pick fields explicitly so retired keys (the old game-length settings)
+    // don't get carried forward and re-saved.
+    return {
+      turnSeconds: parsed.turnSeconds ?? DEFAULT_SETTINGS.turnSeconds,
+      penaltyStyle: parsed.penaltyStyle ?? DEFAULT_SETTINGS.penaltyStyle,
+    };
   } catch {
     return DEFAULT_SETTINGS;
   }
@@ -105,8 +114,22 @@ function Taboo() {
   const [settings, setSettings] = useState<TabooSettings>(loadSettings);
   const [showRules, setShowRules] = useState(false);
 
-  const [teamNames, setTeamNames] = useState<[string, string]>(['Team A', 'Team B']);
+  // Last weekend's teams, restored on mount via lazy initialisers
+  const [teamNames, setTeamNames] = useState<[string, string]>(
+    () => loadRoster()?.teamNames ?? ['Team A', 'Team B']
+  );
+  const [rosters, setRosters] = useState<[string[], string[]]>(
+    () => loadRoster()?.rosters ?? [[], []]
+  );
   const [scores, setScores] = useState<[number, number]>([0, 0]);
+
+  // Roster-building screen state
+  const [knownPlayers, setKnownPlayers] = useState<string[]>(getKnownPlayers);
+  const [nameQuery, setNameQuery] = useState('');
+  const [activeRoster, setActiveRoster] = useState<0 | 1>(0);
+  // Turns the suggestion pills into "forget this name" buttons, so a typo
+  // doesn't live in the saved list forever.
+  const [managingNames, setManagingNames] = useState(false);
 
   // Number of turns fully completed this game. Active team = turnsCompleted % 2.
   const [turnsCompleted, setTurnsCompleted] = useState(0);
@@ -139,7 +162,16 @@ function Taboo() {
 
   const activeTeam = turnsCompleted % 2;
   const currentRound = Math.floor(turnsCompleted / 2) + 1;
-  const totalRounds = settings.gameMode === 'rounds' ? settings.roundsPerTeam + bonusRounds : null;
+  // Game length comes from the roster: play until everyone has given clues once.
+  // The bigger team sets the count so both teams still get equal turns.
+  const roundsPerTeam = Math.max(rosters[0].length, rosters[1].length, 1);
+  const totalRounds = roundsPerTeam + bonusRounds;
+  // Each team rotates through its own roster, one new clue giver per round.
+  const clueGiver = (team: number): string | null => {
+    const roster = rosters[team];
+    if (roster.length === 0) return null;
+    return roster[Math.floor(turnsCompleted / 2) % roster.length];
+  };
 
   // ---- Page background while mounted (matches NERTZ pattern for iOS safe areas) ----
   useEffect(() => {
@@ -308,8 +340,81 @@ function Taboo() {
     return card;
   }, []);
 
+  // ---- Roster building ----
+  const teamOf = (name: string): 0 | 1 | null => {
+    if (rosters[0].some((n) => sameName(n, name))) return 0;
+    if (rosters[1].some((n) => sameName(n, name))) return 1;
+    return null;
+  };
+
+  const trimmedQuery = normalizeName(nameQuery);
+  // Prefix match, as typed: "m" lists everyone whose name starts with M.
+  const suggestions = trimmedQuery
+    ? knownPlayers.filter((n) => n.toLowerCase().startsWith(trimmedQuery.toLowerCase()))
+    : knownPlayers;
+  const queryIsNewName =
+    trimmedQuery.length > 0 && !knownPlayers.some((n) => sameName(n, trimmedQuery));
+
+  const assignToActive = (name: string) => {
+    // Drop from both teams first, so this also handles moving across teams
+    const next: [string[], string[]] = [
+      rosters[0].filter((n) => !sameName(n, name)),
+      rosters[1].filter((n) => !sameName(n, name)),
+    ];
+    next[activeRoster] = [...next[activeRoster], name];
+    setRosters(next);
+  };
+
+  const removePlayer = (name: string) => {
+    setRosters([
+      rosters[0].filter((n) => !sameName(n, name)),
+      rosters[1].filter((n) => !sameName(n, name)),
+    ]);
+  };
+
+  /**
+   * Tapping a suggestion assigns it to the active team, moves it there from the
+   * other team, or takes it off if it's already on the active team. The query
+   * and the filtered list are deliberately left alone, so a whole run of "M"
+   * names can be tapped one after another without retyping.
+   */
+  const togglePlayer = (name: string) => {
+    if (teamOf(name) === activeRoster) {
+      playUi('back');
+      removePlayer(name);
+    } else {
+      playUi('select');
+      assignToActive(name);
+    }
+  };
+
+  const addTypedPlayer = () => {
+    const clean = normalizeName(nameQuery);
+    if (!clean) return;
+    const existing = knownPlayers.find((n) => sameName(n, clean));
+    if (existing) {
+      if (teamOf(existing) !== activeRoster) {
+        playUi('select');
+        assignToActive(existing);
+      }
+      return;
+    }
+    setKnownPlayers(rememberPlayers([clean]));
+    assignToActive(clean);
+    setNameQuery(''); // a brand-new name is fully typed; clear for the next one
+    playUi('forward');
+  };
+
+  const rosterReady = rosters[0].length >= 2 && rosters[1].length >= 2;
+
+  // Remember teams between games so a reunion doesn't retype them all weekend
+  useEffect(() => {
+    saveRoster({ teamNames, rosters });
+  }, [teamNames, rosters]);
+
   // ---- Game flow ----
   const startNewGame = () => {
+    rememberPlayers([...rosters[0], ...rosters[1]]);
     playUi('forward');
     deckRef.current = shuffledIndices(TABOO_CARDS.length);
     deckPosRef.current = 0;
@@ -424,28 +529,16 @@ function Taboo() {
     // Win conditions are only checked after a full round (both teams had equal turns)
     if (completed % 2 === 0) {
       const roundsDone = completed / 2;
-      if (settings.gameMode === 'rounds') {
-        if (roundsDone >= settings.roundsPerTeam + bonusRounds) {
-          if (newScores[0] === newScores[1]) {
-            // Tie: sudden-death extra round
-            setBonusRounds((b) => b + 1);
-          } else {
-            playUi('fanfare');
-            setWinner(newScores[0] > newScores[1] ? 0 : 1);
-            setScreen('gameOver');
-            return;
-          }
-        }
-      } else {
-        const target = settings.targetScore;
-        const reached = newScores[0] >= target || newScores[1] >= target;
-        if (reached && newScores[0] !== newScores[1]) {
+      if (roundsDone >= totalRounds) {
+        if (newScores[0] === newScores[1]) {
+          // Tie: sudden-death extra round
+          setBonusRounds((b) => b + 1);
+        } else {
           playUi('fanfare');
           setWinner(newScores[0] > newScores[1] ? 0 : 1);
           setScreen('gameOver');
           return;
         }
-        // Tie at/above target: keep playing until a round ends with a leader
       }
     }
     playUi('forward');
@@ -548,7 +641,7 @@ function Taboo() {
               onClick={() => {
                 getAudioCtx(); // first gesture: unlock audio for the rest of the game
                 playUi('forward');
-                setScreen('setup');
+                setScreen('settings');
               }}
             >
               Start Game
@@ -575,34 +668,16 @@ function Taboo() {
           </motion.div>
         )}
 
-        {/* ---------- SETUP ---------- */}
-        {screen === 'setup' && (
+        {/* ---------- SETTINGS ---------- */}
+        {screen === 'settings' && (
           <motion.div
-            key="setup"
+            key="settings"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
             className="taboo-screen flex flex-col gap-5"
           >
-            <h2 className="taboo-heading text-3xl text-center">Game Setup</h2>
-
-            <div className="taboo-panel">
-              <label className="taboo-label">Teams</label>
-              {[0, 1].map((i) => (
-                <input
-                  key={i}
-                  className="taboo-input mb-2"
-                  value={teamNames[i]}
-                  maxLength={18}
-                  onChange={(e) => {
-                    const next: [string, string] = [...teamNames];
-                    next[i] = e.target.value;
-                    setTeamNames(next);
-                  }}
-                  placeholder={`Team ${i === 0 ? 'A' : 'B'}`}
-                />
-              ))}
-            </div>
+            <h2 className="taboo-heading text-3xl text-center">Game Settings</h2>
 
             <div className="taboo-panel">
               <label className="taboo-label">Turn timer</label>
@@ -620,61 +695,6 @@ function Taboo() {
                   </button>
                 ))}
               </div>
-            </div>
-
-            <div className="taboo-panel">
-              <label className="taboo-label">Game length</label>
-              <div className="flex gap-2 mb-3">
-                <button
-                  className={`taboo-chip flex-1 ${settings.gameMode === 'rounds' ? 'taboo-chip-active' : ''}`}
-                  onClick={() => {
-                    playUi('select');
-                    setSettings({ ...settings, gameMode: 'rounds' });
-                  }}
-                >
-                  Fixed rounds
-                </button>
-                <button
-                  className={`taboo-chip flex-1 ${settings.gameMode === 'target' ? 'taboo-chip-active' : ''}`}
-                  onClick={() => {
-                    playUi('select');
-                    setSettings({ ...settings, gameMode: 'target' });
-                  }}
-                >
-                  Target score
-                </button>
-              </div>
-              {settings.gameMode === 'rounds' ? (
-                <div className="flex gap-2">
-                  {[2, 3, 4, 5].map((r) => (
-                    <button
-                      key={r}
-                      className={`taboo-chip ${settings.roundsPerTeam === r ? 'taboo-chip-active' : ''}`}
-                      onClick={() => {
-                        playUi('select');
-                        setSettings({ ...settings, roundsPerTeam: r });
-                      }}
-                    >
-                      {r} each
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <div className="flex gap-2">
-                  {[15, 25, 35, 50].map((t) => (
-                    <button
-                      key={t}
-                      className={`taboo-chip ${settings.targetScore === t ? 'taboo-chip-active' : ''}`}
-                      onClick={() => {
-                        playUi('select');
-                        setSettings({ ...settings, targetScore: t });
-                      }}
-                    >
-                      {t} pts
-                    </button>
-                  ))}
-                </div>
-              )}
             </div>
 
             <div className="taboo-panel">
@@ -701,15 +721,213 @@ function Taboo() {
               </div>
             </div>
 
+            <p className="text-center text-sm text-white/70 px-2">
+              Game length comes from your line-up — every player gives clues once.
+            </p>
+
             <div className="mt-auto flex flex-col gap-3 pb-2">
-              <button className="taboo-btn taboo-btn-primary w-full" onClick={startNewGame}>
-                Let's Play!
+              <button
+                className="taboo-btn taboo-btn-primary w-full"
+                onClick={() => {
+                  playUi('forward');
+                  setScreen('roster');
+                }}
+              >
+                Next: Players
               </button>
               <button
                 className="taboo-btn taboo-btn-ghost w-full"
                 onClick={() => {
                   playUi('back');
                   setScreen('home');
+                }}
+              >
+                Back
+              </button>
+            </div>
+          </motion.div>
+        )}
+
+        {/* ---------- ROSTER ---------- */}
+        {screen === 'roster' && (
+          <motion.div
+            key="roster"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            className="taboo-screen flex flex-col gap-4"
+          >
+            <h2 className="taboo-heading text-3xl text-center">Players</h2>
+
+            {/* Which team the next tap adds to. Doubles as the live head count. */}
+            <div className="flex gap-2">
+              {([0, 1] as const).map((i) => (
+                <button
+                  key={i}
+                  className={`taboo-team-tab taboo-team-tab-${i} ${activeRoster === i ? 'is-active' : ''}`}
+                  onClick={() => {
+                    playUi('select');
+                    setActiveRoster(i);
+                  }}
+                >
+                  <span className="truncate">{teamNames[i] || `Team ${i === 0 ? 'A' : 'B'}`}</span>
+                  <span className="taboo-team-count">{rosters[i].length}</span>
+                </button>
+              ))}
+            </div>
+
+            <div className="taboo-panel">
+              <label className="taboo-label">
+                Adding to {teamNames[activeRoster] || (activeRoster === 0 ? 'Team A' : 'Team B')}
+              </label>
+              <input
+                className="taboo-input"
+                value={nameQuery}
+                maxLength={MAX_NAME_LENGTH}
+                autoComplete="off"
+                autoCorrect="off"
+                spellCheck={false}
+                placeholder="Type a name…"
+                onChange={(e) => setNameQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    addTypedPlayer();
+                  }
+                }}
+              />
+
+              {/* While matches exist the typing is probably a filter, not a new
+                  name, so the create action stays quiet until nothing matches. */}
+              {queryIsNewName && suggestions.length === 0 && (
+                <button className="taboo-add-new" onClick={addTypedPlayer}>
+                  ＋ Add “{trimmedQuery}”
+                </button>
+              )}
+
+              {knownPlayers.length > 0 && (
+                <>
+                  <div className="flex items-center justify-between mt-3 mb-2">
+                    <span className="taboo-label !mb-0">
+                      {trimmedQuery ? `Starting with “${trimmedQuery}”` : 'Everyone'}
+                    </span>
+                    <button
+                      className="taboo-link"
+                      onClick={() => {
+                        playUi('select');
+                        setManagingNames((v) => !v);
+                      }}
+                    >
+                      {managingNames ? 'Done' : 'Edit list'}
+                    </button>
+                  </div>
+
+                  {suggestions.length === 0 ? (
+                    <p className="text-sm text-white/60">
+                      No saved name starts with “{trimmedQuery}”.
+                    </p>
+                  ) : (
+                    <div className="flex flex-wrap gap-2 items-center">
+                      {suggestions.map((name) => {
+                        const team = teamOf(name);
+                        return (
+                          <button
+                            key={name}
+                            className={`taboo-pill ${team !== null ? `taboo-pill-on-${team}` : ''}`}
+                            onClick={() => {
+                              if (managingNames) {
+                                playUi('back');
+                                removePlayer(name);
+                                setKnownPlayers(forgetPlayer(name));
+                              } else {
+                                togglePlayer(name);
+                              }
+                            }}
+                          >
+                            {managingNames && <span className="taboo-pill-mark">✕</span>}
+                            {!managingNames && team !== null && (
+                              <span className="taboo-pill-mark">✓</span>
+                            )}
+                            {name}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* Still reachable when the typed name shares a prefix with
+                      someone already saved (a second Mike, say). */}
+                  {queryIsNewName && suggestions.length > 0 && !managingNames && (
+                    <button className="taboo-link taboo-link-block" onClick={addTypedPlayer}>
+                      ＋ Add “{trimmedQuery}” as someone new
+                    </button>
+                  )}
+                </>
+              )}
+
+              {knownPlayers.length === 0 && !trimmedQuery && (
+                <p className="text-sm text-white/60 mt-3">
+                  Type a name above and it's saved for next time.
+                </p>
+              )}
+            </div>
+
+            {/* The two line-ups */}
+            {([0, 1] as const).map((i) => (
+              <div key={i} className={`taboo-panel taboo-team-panel-${i}`}>
+                <input
+                  className="taboo-input taboo-team-name"
+                  value={teamNames[i]}
+                  maxLength={18}
+                  onChange={(e) => {
+                    const next: [string, string] = [...teamNames];
+                    next[i] = e.target.value;
+                    setTeamNames(next);
+                  }}
+                  onFocus={() => setActiveRoster(i)}
+                  placeholder={`Team ${i === 0 ? 'A' : 'B'}`}
+                />
+                {rosters[i].length === 0 ? (
+                  <p className="text-sm text-white/60 mt-2">No players yet — tap a name above.</p>
+                ) : (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {rosters[i].map((name) => (
+                      <button
+                        key={name}
+                        className={`taboo-roster-chip taboo-roster-chip-${i}`}
+                        onClick={() => {
+                          playUi('back');
+                          removePlayer(name);
+                        }}
+                      >
+                        {name}
+                        <span className="taboo-pill-mark">✕</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+
+            <p className="text-center text-sm text-white/70">
+              {rosterReady
+                ? `${totalRounds} round${totalRounds === 1 ? '' : 's'} each — everyone gives clues once`
+                : 'Each team needs at least 2 players: one to give clues, one to guess.'}
+            </p>
+
+            <div className="mt-auto flex flex-col gap-3 pb-2">
+              <button
+                className="taboo-btn taboo-btn-primary w-full"
+                disabled={!rosterReady}
+                onClick={startNewGame}
+              >
+                Let's Play!
+              </button>
+              <button
+                className="taboo-btn taboo-btn-ghost w-full"
+                onClick={() => {
+                  playUi('back');
+                  setScreen('settings');
                 }}
               >
                 Back
@@ -728,13 +946,18 @@ function Taboo() {
             className="taboo-screen flex flex-col items-center justify-center gap-6 text-center"
           >
             <div className="taboo-heading text-xl opacity-80">
-              Round {currentRound}
-              {totalRounds ? ` of ${totalRounds}` : ''}
+              Round {currentRound} of {totalRounds}
             </div>
-            <h2 className="taboo-logo-sm">{teamNames[activeTeam]}</h2>
+            <div className="taboo-heading text-lg opacity-80 -mb-3">
+              {teamNames[activeTeam]}
+            </div>
+            <h2 className="taboo-logo-sm">
+              {clueGiver(activeTeam) ?? teamNames[activeTeam]}
+            </h2>
             <div className="taboo-panel text-left w-full">
               <p className="mb-2">
-                📱 Hand the device to <strong>{teamNames[activeTeam]}</strong>'s clue giver.
+                📱 Hand the device to <strong>{clueGiver(activeTeam) ?? 'the clue giver'}</strong> —
+                you're giving clues this round.
               </p>
               <p className="mb-2">
                 👀 A player from <strong>{teamNames[1 - activeTeam]}</strong> watches the screen
@@ -861,9 +1084,7 @@ function Taboo() {
               ))}
             </div>
             <div className="taboo-heading text-lg opacity-80">
-              {settings.gameMode === 'rounds'
-                ? `Round ${currentRound} of ${totalRounds}`
-                : `First to ${settings.targetScore} (equal turns)`}
+              {`Round ${currentRound} of ${totalRounds}`}
             </div>
             <button
               className="taboo-btn taboo-btn-primary w-full"
