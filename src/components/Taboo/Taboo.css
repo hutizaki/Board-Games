@@ -4,17 +4,6 @@
    web fallback so the game looks right on any device */
 @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap');
 
-.taboo-logo {
-  font-family: 'Bebas Neue Pro', 'Bebas Neue', 'Arial Narrow', sans-serif;
-  font-weight: 700;
-  font-size: 5rem;
-  line-height: 1;
-  color: #fa7268;
-  text-shadow: 0 4px 0 rgba(0, 0, 0, 0.25);
-  letter-spacing: -0.02em;
-  transform: rotate(-3deg);
-}
-
 .taboo-logo-sm {
   font-family: 'Bebas Neue Pro', 'Bebas Neue', 'Arial Narrow', sans-serif;
   font-weight: 700;

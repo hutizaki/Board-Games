@@ -5,6 +5,7 @@ import './Taboo.css';
 import { TABOO_CARDS, type TabooCard } from './tabooCards';
 import lobbyMusicSrc from '../../assets/audio/kahoot-lobby-music.mp3';
 import buzzerSrc from '../../assets/audio/buzzer.mp3';
+import tabooLogo from '../../assets/Taboo/tabooLogo.png';
 
 // ============ Types ============
 
@@ -423,8 +424,8 @@ function Taboo() {
             exit={{ opacity: 0 }}
             className="flex flex-col items-center justify-center flex-1 w-full max-w-sm gap-6"
           >
-            <h1 className="taboo-logo">Taboo</h1>
-            <p className="taboo-heading text-center text-lg -mt-4">
+            <img src={tabooLogo} alt="Taboo" className="w-full max-w-xs" />
+            <p className="taboo-heading text-center text-lg -mt-2">
               Say it… without saying it!
             </p>
             <button className="taboo-btn taboo-btn-primary w-full" onClick={() => setScreen('setup')}>
