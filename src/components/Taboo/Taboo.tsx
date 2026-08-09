@@ -68,6 +68,15 @@ const SETTINGS_KEY = 'taboo_settings';
 
 const PURPLE_BG = '#3d1a63';
 
+// Wave look. Both are fixed values — the sea must not change character as the
+// clock runs down, so nothing here is derived from the timer.
+const WAVE_SPEED = 1.85;
+const WAVE_HEIGHT = 0.039;
+// Amplitude is a fraction of container height, but the wavelength is a fraction
+// of its width. On a phone that makes the same figure read as a much steeper
+// swell, so narrow screens get half the height.
+const NARROW_SCREEN = '(max-width: 639px)';
+
 // Cycle order used by the review screen's tap-to-correct ("Oops") feature
 const OUTCOME_CYCLE: Outcome[] = ['correct', 'buzzed', 'passed', 'expired'];
 
@@ -130,6 +139,10 @@ function Taboo() {
   // Turns the suggestion pills into "forget this name" buttons, so a typo
   // doesn't live in the saved list forever.
   const [managingNames, setManagingNames] = useState(false);
+
+  const [narrowScreen, setNarrowScreen] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia(NARROW_SCREEN).matches
+  );
 
   // Number of turns fully completed this game. Active team = turnsCompleted % 2.
   const [turnsCompleted, setTurnsCompleted] = useState(0);
@@ -443,6 +456,15 @@ function Taboo() {
     currentCardRef.current = currentCard;
   }, [currentCard]);
 
+  // Track the breakpoint live so rotating the phone rescales the swell
+  useEffect(() => {
+    const mq = window.matchMedia(NARROW_SCREEN);
+    const update = () => setNarrowScreen(mq.matches);
+    update();
+    mq.addEventListener('change', update);
+    return () => mq.removeEventListener('change', update);
+  }, []);
+
   const markOutcome = (outcome: Outcome) => {
     if (!currentCard) return;
     if (outcome === 'correct') playCorrect();
@@ -604,11 +626,12 @@ function Taboo() {
                interval also logs the dead card, stops the music, and buzzes. */
             endsAt={turnEndsAt}
             showReadout={false}
-            /* Constant sea. Stepping these at the 15s mark read as chaotic, so
-               both sit midway between the old calm and choppy values. The
-               component still eases amplitude with the tide on its own. */
-            waveSpeed={1.85}
-            waveHeight={0.039}
+            /* Constant sea: neither value tracks the clock, and easeWithTide
+               switches off the component's own amplitude ramp so the swell
+               stays identical from full to empty. */
+            waveSpeed={WAVE_SPEED}
+            waveHeight={narrowScreen ? WAVE_HEIGHT / 2 : WAVE_HEIGHT}
+            easeWithTide={false}
             theme={{
               deep: '#2a1145',
               violet: '#5b2a86',

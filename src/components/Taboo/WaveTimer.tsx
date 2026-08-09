@@ -238,6 +238,12 @@ export interface WaveTimerProps {
   theme?: WaveTimerTheme;
   waveSpeed?: number;
   waveHeight?: number;
+  /**
+   * By default the surface calms as the glass fills or empties and is
+   * choppiest mid-drain. Set false to hold one amplitude the whole way down,
+   * so the sea never changes character with the clock.
+   */
+  easeWithTide?: boolean;
   rippleWhilePaused?: boolean;
   className?: string;
   style?: CSSProperties;
@@ -261,6 +267,7 @@ export const WaveTimer = forwardRef<WaveTimerHandle, WaveTimerProps>(function Wa
     theme: themeProp,
     waveSpeed = 1,
     waveHeight = 0.028,
+    easeWithTide = true,
     rippleWhilePaused = true,
     className,
     style,
@@ -369,10 +376,10 @@ export const WaveTimer = forwardRef<WaveTimerHandle, WaveTimerProps>(function Wa
 
   void tick; // the rAF counter exists purely to schedule a render
 
-  /* the water is calm when the glass is full and when it's empty */
-  const amp = reduced
-    ? waveHeight * 0.35
-    : waveHeight * Math.sqrt(Math.sin(Math.PI * clamp(progress, 0, 1)));
+  /* the water is calm when the glass is full and when it's empty — unless the
+     caller asked for one steady amplitude that never tracks the clock */
+  const tide = easeWithTide ? Math.sqrt(Math.sin(Math.PI * clamp(progress, 0, 1))) : 1;
+  const amp = reduced ? waveHeight * 0.35 : waveHeight * tide;
 
   const front = surface(phaseRef.current, amp);
   const back = surface(phaseRef.current + 2.1, amp * 0.8);
