@@ -5,6 +5,7 @@ import './Taboo.css';
 import { TABOO_CARDS, type TabooCard } from './tabooCards';
 import lobbyMusicSrc from '../../assets/audio/kahoot-lobby-music.mp3';
 import buzzerSrc from '../../assets/audio/buzzer.mp3';
+import dingSrc from '../../assets/audio/ding.mp3';
 import tabooLogo from '../../assets/Taboo/tabooLogo.png';
 
 // ============ Types ============
@@ -111,6 +112,7 @@ function Taboo() {
   const audioCtxRef = useRef<AudioContext | null>(null);
   const musicRef = useRef<HTMLAudioElement | null>(null);
   const buzzerRef = useRef<HTMLAudioElement | null>(null);
+  const dingRef = useRef<HTMLAudioElement | null>(null);
   const musicStartedRef = useRef(false);
 
   const activeTeam = turnsCompleted % 2;
@@ -137,10 +139,14 @@ function Taboo() {
     buzzerRef.current = new Audio(buzzerSrc);
     buzzerRef.current.preload = 'auto';
     buzzerRef.current.volume = 0.6;
+    dingRef.current = new Audio(dingSrc);
+    dingRef.current.preload = 'auto';
+    dingRef.current.volume = 0.6;
     return () => {
       musicRef.current?.pause();
       musicRef.current = null;
       buzzerRef.current = null;
+      dingRef.current = null;
     };
   }, []);
 
@@ -187,9 +193,11 @@ function Taboo() {
   );
 
   const playCorrect = useCallback(() => {
-    playTone(660, 0.12, 'sine', 0.25);
-    playTone(990, 0.18, 'sine', 0.25, 0.1);
-  }, [playTone]);
+    const ding = dingRef.current;
+    if (!ding) return;
+    ding.currentTime = 0; // retrigger instantly on rapid correct answers
+    ding.play().catch(() => {});
+  }, []);
 
   const playBuzz = useCallback(() => {
     playTone(130, 0.5, 'sawtooth', 0.3);

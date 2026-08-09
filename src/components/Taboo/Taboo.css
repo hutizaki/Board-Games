@@ -1,8 +1,9 @@
 /* Taboo Global Styles — purple + coral theme matching the classic box art */
 
 /* Bebas Neue Pro is the licensed cut; free Bebas Neue from Google Fonts is the
-   web fallback so the game looks right on any device */
-@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap');
+   web fallback so the game looks right on any device.
+   Permanent Marker gives buttons a playful hand-drawn contrast. */
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Permanent+Marker&display=swap');
 
 .taboo-logo-sm {
   font-family: 'Bebas Neue Pro', 'Bebas Neue', 'Arial Narrow', sans-serif;
@@ -68,8 +69,8 @@
   border: none;
   border-radius: 16px;
   padding: 0.9rem 1.25rem;
-  font-family: 'Bebas Neue Pro', 'Bebas Neue', 'Arial Narrow', sans-serif;
-  font-weight: 700;
+  font-family: 'Permanent Marker', 'Comic Sans MS', cursive;
+  font-weight: 400; /* Permanent Marker has a single weight; faux-bold distorts it */
   font-size: 1.15rem;
   color: #ffffff;
   box-shadow: 0 4px 0 rgba(0, 0, 0, 0.3);
