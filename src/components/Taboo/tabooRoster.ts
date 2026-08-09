@@ -1,99 +1,98 @@
 /**
- * Player roster: the remembered list of everyone who has ever played, plus the
- * last teams used. Reunions run many games back to back, so nobody should have
- * to type "Grandma Jo" more than once all weekend.
+ * Roster storage.
+ *
+ * The line-up itself is deliberately NOT persisted — a new game night is a new
+ * group, and a stale roster is worse than an empty one. What persists is the
+ * pool of names, so nobody retypes "Grandma Jo" all weekend.
  */
 
-const KNOWN_PLAYERS_KEY = 'taboo_known_players';
-const ROSTER_KEY = 'taboo_roster';
-
-const MAX_KNOWN = 200;
-export const MAX_NAME_LENGTH = 20;
-
-export interface SavedRoster {
-  teamNames: [string, string];
-  rosters: [string[], string[]];
+export interface Player {
+  /** Stable identity. FLIP animation keys on it, so values are never reused. */
+  id: number;
+  /** 1–18 chars, trimmed. Duplicates are legal — two Sams is a real family. */
+  name: string;
+  /** Index into teamNames. There is no unassigned state. */
+  team: 0 | 1;
 }
 
-/** Trimmed, collapsed whitespace, capped. Empty string means "not a name". */
+const RECENTS_KEY = 'taboo_recents';
+const TEAM_NAMES_KEY = 'taboo_team_names';
+
+const MAX_RECENTS = 40;
+export const MAX_NAME_LENGTH = 18;
+
+/**
+ * One house style for every name: a single word, capitalised.
+ *
+ * Pills are narrow and the roster is scanned at a glance across a table, so
+ * "mary ann sanders" becomes "Mary" and "DEV" becomes "Dev". Only the first
+ * word survives — everything after the first space is dropped.
+ */
 export function normalizeName(raw: string): string {
-  return raw.replace(/\s+/g, ' ').trim().slice(0, MAX_NAME_LENGTH);
+  const firstWord = raw.trim().split(/\s+/)[0] ?? '';
+  const clipped = firstWord.slice(0, MAX_NAME_LENGTH);
+  if (!clipped) return '';
+  return clipped.charAt(0).toUpperCase() + clipped.slice(1).toLowerCase();
 }
 
-/** Names are compared case-insensitively so "mike" and "Mike" are one person. */
 export function sameName(a: string, b: string): boolean {
   return a.toLowerCase() === b.toLowerCase();
 }
 
-function readList(key: string): string[] {
+/** First occurrence wins, compared case-insensitively. */
+export function dedupeNames(names: string[]): string[] {
+  const out: string[] = [];
+  for (const raw of names) {
+    const name = normalizeName(raw);
+    if (!name) continue;
+    if (!out.some((n) => sameName(n, name))) out.push(name);
+  }
+  return out;
+}
+
+export function loadRecents(): string[] {
   try {
-    const raw = localStorage.getItem(key);
+    const raw = localStorage.getItem(RECENTS_KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw) as unknown;
     if (!Array.isArray(parsed)) return [];
-    return parsed.filter((n): n is string => typeof n === 'string');
+    return dedupeNames(parsed.filter((n): n is string => typeof n === 'string')).slice(
+      0,
+      MAX_RECENTS
+    );
   } catch {
     return [];
   }
 }
 
-export function getKnownPlayers(): string[] {
-  return sortNames(readList(KNOWN_PLAYERS_KEY));
-}
-
-export function sortNames(names: string[]): string[] {
-  return [...names].sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
-}
-
-/** Adds any names not already remembered. Returns the new full list. */
-export function rememberPlayers(names: string[]): string[] {
-  const known = readList(KNOWN_PLAYERS_KEY);
-  for (const name of names) {
-    const clean = normalizeName(name);
-    if (!clean) continue;
-    if (!known.some((k) => sameName(k, clean))) known.push(clean);
-  }
-  const capped = known.slice(-MAX_KNOWN);
+/**
+ * Saves the name pool. Callers pass the on-screen recents plus everyone
+ * currently on a team: the roster vanishes at the end of the session, so any
+ * name only held by a player would be lost with it.
+ */
+export function saveRecents(names: string[]): void {
   try {
-    localStorage.setItem(KNOWN_PLAYERS_KEY, JSON.stringify(capped));
+    localStorage.setItem(RECENTS_KEY, JSON.stringify(dedupeNames(names).slice(0, MAX_RECENTS)));
   } catch {
-    // storage unavailable; the list just won't persist
+    // storage unavailable; the pool just won't persist
   }
-  return sortNames(capped);
 }
 
-export function forgetPlayer(name: string): string[] {
-  const remaining = readList(KNOWN_PLAYERS_KEY).filter((k) => !sameName(k, name));
+export function loadTeamNames(): [string, string] {
   try {
-    localStorage.setItem(KNOWN_PLAYERS_KEY, JSON.stringify(remaining));
+    const raw = localStorage.getItem(TEAM_NAMES_KEY);
+    if (!raw) return ['Team A', 'Team B'];
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed) || parsed.length !== 2) return ['Team A', 'Team B'];
+    return [String(parsed[0]) || 'Team A', String(parsed[1]) || 'Team B'];
   } catch {
-    // ignore
-  }
-  return sortNames(remaining);
-}
-
-export function loadRoster(): SavedRoster | null {
-  try {
-    const raw = localStorage.getItem(ROSTER_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as Partial<SavedRoster>;
-    const names = parsed.teamNames;
-    const rosters = parsed.rosters;
-    if (!Array.isArray(names) || names.length !== 2) return null;
-    if (!Array.isArray(rosters) || rosters.length !== 2) return null;
-    if (!Array.isArray(rosters[0]) || !Array.isArray(rosters[1])) return null;
-    return {
-      teamNames: [String(names[0]), String(names[1])],
-      rosters: [rosters[0].map(String), rosters[1].map(String)],
-    };
-  } catch {
-    return null;
+    return ['Team A', 'Team B'];
   }
 }
 
-export function saveRoster(roster: SavedRoster): void {
+export function saveTeamNames(names: [string, string]): void {
   try {
-    localStorage.setItem(ROSTER_KEY, JSON.stringify(roster));
+    localStorage.setItem(TEAM_NAMES_KEY, JSON.stringify(names));
   } catch {
     // ignore
   }

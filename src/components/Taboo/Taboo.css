@@ -236,188 +236,24 @@
   border-color: #fa7268;
 }
 
-/* ---------------- Roster screen ---------------- */
-
-/* Team colours: everything tied to a team carries one of these */
-.taboo-team-tab-0,
-.taboo-team-panel-0,
-.taboo-pill-on-0,
-.taboo-roster-chip-0 {
-  --team: #fa7268;
-}
-
-.taboo-team-tab-1,
-.taboo-team-panel-1,
-.taboo-pill-on-1,
-.taboo-roster-chip-1 {
-  --team: #45c0b0;
-}
-
-/* Which team the next tap adds to. The selected tab and the panel beneath it
-   read as a single tabbed shape, with no wrapper box around the pair: the tab
-   simply drops its bottom border, and the panel paints its top border only
-   across the part the tab doesn't cover. */
-.taboo-tabs {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.5rem;
-  /* Breathing room so the unselected tab floats clear of the panel. The
-     selected tab reaches down through this gap; see its margin-bottom. */
-  margin-bottom: var(--tab-gap);
-}
-
-.taboo-tabs,
-.taboo-team-tab.is-active {
-  --tab-gap: 6px;
-}
-
-.taboo-team-tab {
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  padding: 0.7rem 0.75rem;
-  border-radius: 14px;
-  border: 2px solid rgba(255, 255, 255, 0.2);
-  background: rgba(0, 0, 0, 0.25);
-  color: #ffffff;
-  font-weight: 700;
-  font-size: 1rem;
-}
-
-/* Shared fill, so the tab and the panel below it are one continuous surface.
-   Opaque on purpose: the tab sits on top of the panel's own top border to hide
-   the segment it covers, and a translucent fill would let that line show
-   through as a seam. Keeping the panel's real border (rather than faking the
-   top edge) is what lets the far corner round properly. */
-.taboo-team-tab.is-active,
-.taboo-tabpanel {
-  --tab-fill: color-mix(in srgb, var(--team) 16%, #431f63);
-}
-
-.taboo-team-tab.is-active {
-  background: var(--tab-fill);
-  border-color: var(--team);
-  /* the join: no bottom edge, square bottom corners, no glow across the seam */
-  border-bottom: none;
-  border-bottom-left-radius: 0;
-  border-bottom-right-radius: 0;
-  box-shadow: none;
-  /* reach down through the gap and 2px over the panel's top border */
-  margin-bottom: calc(-1 * var(--tab-gap) - 2px);
-  position: relative;
-  z-index: 1;
-}
-
-.taboo-tabpanel {
-  background: var(--tab-fill);
-  border-color: var(--team);
-}
-
-/* Only the corner the tab plugs into is squared off; the far one stays round */
-.taboo-tabpanel-0 {
-  --team: #fa7268;
-  border-top-left-radius: 0;
-}
-
-.taboo-tabpanel-1 {
-  --team: #45c0b0;
-  border-top-right-radius: 0;
-}
-
-.taboo-team-count {
-  flex: none;
-  min-width: 1.6rem;
-  padding: 0.05rem 0.4rem;
+/* In-game menu handle: parked out of the thumb's way, above the backdrops */
+.taboo-menu-btn {
+  position: fixed;
+  top: max(0.75rem, env(safe-area-inset-top, 0px));
+  right: max(0.75rem, env(safe-area-inset-right, 0px));
+  z-index: 30;
+  width: 44px;
+  height: 44px;
   border-radius: 999px;
-  background: var(--team);
-  color: #21103a;
-  font-size: 0.85rem;
-  font-weight: 700;
-}
-
-/* Suggestion pills: tap to put someone on the active team */
-.taboo-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  border-radius: 999px;
-  padding: 0.45rem 0.85rem;
-  border: 2px solid rgba(255, 255, 255, 0.28);
-  background: rgba(255, 255, 255, 0.08);
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  background: rgba(20, 8, 36, 0.6);
+  backdrop-filter: blur(4px);
   color: #ffffff;
-  font-size: 1rem;
-  font-weight: 600;
-  line-height: 1.2;
+  font-size: 1.15rem;
+  line-height: 1;
 }
 
-.taboo-pill-on-0,
-.taboo-pill-on-1 {
-  border-color: var(--team);
-  background: color-mix(in srgb, var(--team) 30%, transparent);
-}
-
-.taboo-pill-mark {
-  font-size: 0.8rem;
-  opacity: 0.85;
-}
-
-/* Create a name the saved list has never seen */
-.taboo-add-new {
-  display: block;
-  width: 100%;
-  margin-top: 0.5rem;
-  border-radius: 12px;
-  padding: 0.6rem 0.8rem;
-  border: 2px dashed rgba(250, 114, 104, 0.8);
-  background: rgba(250, 114, 104, 0.16);
-  color: #ffffff;
-  font-weight: 700;
-  font-size: 1rem;
-}
-
-/* Team line-up chips: tap to take someone off */
-.taboo-roster-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  border-radius: 999px;
-  padding: 0.4rem 0.75rem;
-  border: 2px solid var(--team);
-  background: color-mix(in srgb, var(--team) 24%, transparent);
-  color: #ffffff;
-  font-size: 0.95rem;
-  font-weight: 600;
-}
-
-.taboo-team-panel-0,
-.taboo-team-panel-1 {
-  border-color: color-mix(in srgb, var(--team) 55%, transparent);
-}
-
-.taboo-team-name {
-  font-weight: 700;
-}
-
-.taboo-link {
-  background: none;
-  border: none;
-  padding: 0;
-  color: #ffb4ae;
-  font-size: 0.8rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
-
-.taboo-link-block {
-  display: block;
-  width: 100%;
-  margin-top: 0.75rem;
-  text-align: left;
-}
-
+/* Shared: disabled primary actions */
 .taboo-btn:disabled {
   opacity: 0.4;
   box-shadow: none;
