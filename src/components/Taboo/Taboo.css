@@ -2,8 +2,67 @@
 
 /* Bebas Neue Pro is the licensed cut; free Bebas Neue from Google Fonts is the
    web fallback so the game looks right on any device.
-   Permanent Marker gives buttons a playful hand-drawn contrast. */
+   Permanent Marker backs up Graflo, whose demo cut has letters only. */
 @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Permanent+Marker&display=swap');
+
+/* Graffiti hand-drawn face used on buttons. The demo cut maps 60 glyphs
+   (A-Z, a-z) with no digits or brackets, so Permanent Marker follows it in the
+   stack and picks up "(30s)", apostrophes, arrows, and check marks. */
+@font-face {
+  font-family: 'IT Graflo Demo';
+  src: url('../../assets/fonts/ITGrafloDemo-Regular.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* index.html pins html/body/#root with overflow:hidden (an iOS standalone
+   viewport fix), so the page itself never scrolls — this element is the scroll
+   container for every Taboo screen. #root already applies the safe-area insets. */
+.taboo-root {
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  padding: 1.5rem 1rem;
+}
+
+/* Screens grow to fill the viewport but never shrink below their content, so
+   a long screen (settings, a big review list) scrolls the page instead of
+   clipping at the top the way a centered flex-1 child would. */
+.taboo-screen {
+  flex: 1 0 auto;
+  width: 100%;
+  max-width: 24rem;
+}
+
+/* Turn backdrop: the wave fills this layer, which fills the viewport */
+.taboo-wave-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* The tide starts white and drains to purple, so overlay text can't rely on a
+   single background colour — these sit on their own scrim instead. */
+.taboo-turn-header,
+.taboo-turn-tally {
+  background: rgba(20, 8, 36, 0.55);
+  border-radius: 999px;
+  backdrop-filter: blur(4px);
+  color: #ffffff;
+}
+
+.taboo-turn-header {
+  padding: 0.35rem 0.9rem;
+}
+
+.taboo-turn-tally {
+  padding: 0.3rem 0.8rem;
+  align-self: center;
+}
 
 /* Home screen backdrop: giant "shh" face behind the menu */
 .taboo-face-bg {
@@ -42,6 +101,8 @@
   background: #fffdf7;
   border-radius: 20px;
   overflow: hidden;
+  /* Outline keeps the card readable when the white tide is behind it */
+  border: 2px solid rgba(61, 26, 99, 0.25);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
 }
 
@@ -80,9 +141,10 @@
   border: none;
   border-radius: 16px;
   padding: 0.9rem 1.25rem;
-  font-family: 'Permanent Marker', 'Comic Sans MS', cursive;
-  font-weight: 400; /* Permanent Marker has a single weight; faux-bold distorts it */
+  font-family: 'IT Graflo Demo', 'Permanent Marker', 'Comic Sans MS', cursive;
+  font-weight: 400; /* both faces are single-weight; faux-bold distorts them */
   letter-spacing: 0.06em;
+  text-transform: uppercase; /* Graflo is drawn to be set in caps */
   font-size: 1.15rem;
   color: #ffffff;
   box-shadow: 0 4px 0 rgba(0, 0, 0, 0.3);

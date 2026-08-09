@@ -6,8 +6,10 @@ import { TABOO_CARDS, type TabooCard } from './tabooCards';
 import lobbyMusicSrc from '../../assets/audio/kahoot-lobby-music.mp3';
 import buzzerSrc from '../../assets/audio/buzzer.mp3';
 import dingSrc from '../../assets/audio/ding.mp3';
+import boomSrc from '../../assets/audio/vine-boom.mp3';
 import tabooLogo from '../../assets/Taboo/tabooLogo.png';
 import tabooFace from '../../assets/Taboo/tabooFace.png';
+import WaveTimer from './WaveTimer';
 
 // ============ Types ============
 
@@ -27,6 +29,17 @@ interface TurnCard {
   card: TabooCard;
   outcome: Outcome;
 }
+
+type UiSound =
+  | 'forward'
+  | 'back'
+  | 'select'
+  | 'open'
+  | 'close'
+  | 'tick'
+  | 'start'
+  | 'fanfare'
+  | 'endGame';
 
 type GameMode = 'rounds' | 'target';
 type PenaltyStyle = 'opponent' | 'minus';
@@ -114,6 +127,7 @@ function Taboo() {
   const musicRef = useRef<HTMLAudioElement | null>(null);
   const buzzerRef = useRef<HTMLAudioElement | null>(null);
   const dingRef = useRef<HTMLAudioElement | null>(null);
+  const boomRef = useRef<HTMLAudioElement | null>(null);
   const musicStartedRef = useRef(false);
 
   const activeTeam = turnsCompleted % 2;
@@ -143,11 +157,15 @@ function Taboo() {
     dingRef.current = new Audio(dingSrc);
     dingRef.current.preload = 'auto';
     dingRef.current.volume = 0.6;
+    boomRef.current = new Audio(boomSrc);
+    boomRef.current.preload = 'auto';
+    boomRef.current.volume = 0.55;
     return () => {
       musicRef.current?.pause();
       musicRef.current = null;
       buzzerRef.current = null;
       dingRef.current = null;
+      boomRef.current = null;
     };
   }, []);
 
@@ -193,22 +211,83 @@ function Taboo() {
     [getAudioCtx]
   );
 
-  const playCorrect = useCallback(() => {
-    const ding = dingRef.current;
-    if (!ding) return;
-    ding.currentTime = 0; // retrigger instantly on rapid correct answers
-    ding.play().catch(() => {});
+  /**
+   * Play a one-shot clip. Each press gets its own cloned element so rapid
+   * repeats layer over each other instead of the new press cutting off the
+   * previous one. Clones share the already-fetched media, so no extra network.
+   */
+  const playClip = useCallback((base: HTMLAudioElement | null) => {
+    if (!base) return;
+    const node = base.cloneNode() as HTMLAudioElement;
+    node.volume = base.volume;
+    node.play().catch(() => {});
   }, []);
 
+  const playCorrect = useCallback(() => {
+    playClip(dingRef.current);
+  }, [playClip]);
+
   const playBuzz = useCallback(() => {
-    playTone(130, 0.5, 'sawtooth', 0.3);
-    playTone(97, 0.5, 'square', 0.2);
+    playClip(boomRef.current);
     if (navigator.vibrate) navigator.vibrate(300);
-  }, [playTone]);
+  }, [playClip]);
 
   const playPass = useCallback(() => {
-    playTone(330, 0.15, 'triangle', 0.2);
+    // Quick downward "swipe it away" blip
+    playTone(520, 0.09, 'triangle', 0.18);
+    playTone(390, 0.12, 'triangle', 0.18, 0.07);
   }, [playTone]);
+
+  /**
+   * UI button palette — short, bright game-show blips that share a family with
+   * the ding/buzzer effects. Each kind is a small note sequence so every button
+   * reads as its own action by ear.
+   */
+  const playUi = useCallback(
+    (kind: UiSound) => {
+      switch (kind) {
+        case 'forward': // advance: setup, next turn, apply scores
+          playTone(587, 0.08, 'sine', 0.18);
+          playTone(880, 0.12, 'sine', 0.18, 0.06);
+          break;
+        case 'back': // retreat: back buttons, main menu
+          playTone(587, 0.08, 'sine', 0.15);
+          playTone(392, 0.12, 'sine', 0.15, 0.06);
+          break;
+        case 'select': // chips / settings toggles
+          playTone(784, 0.05, 'square', 0.1);
+          break;
+        case 'open': // modal opens
+          playTone(659, 0.07, 'triangle', 0.16);
+          playTone(988, 0.1, 'triangle', 0.16, 0.05);
+          break;
+        case 'close': // modal dismiss
+          playTone(784, 0.07, 'triangle', 0.14);
+          playTone(523, 0.1, 'triangle', 0.14, 0.05);
+          break;
+        case 'tick': // review row correction
+          playTone(1047, 0.04, 'square', 0.12);
+          break;
+        case 'start': // kicking off a turn — bright three-note call
+          playTone(523, 0.1, 'sine', 0.2);
+          playTone(659, 0.1, 'sine', 0.2, 0.09);
+          playTone(1047, 0.22, 'sine', 0.22, 0.18);
+          break;
+        case 'fanfare': // winner screen
+          playTone(523, 0.12, 'sine', 0.22);
+          playTone(659, 0.12, 'sine', 0.22, 0.12);
+          playTone(784, 0.12, 'sine', 0.22, 0.24);
+          playTone(1047, 0.45, 'sine', 0.25, 0.36);
+          break;
+        case 'endGame': // bowing out early — settling descent
+          playTone(659, 0.14, 'sine', 0.18);
+          playTone(523, 0.14, 'sine', 0.18, 0.13);
+          playTone(392, 0.3, 'sine', 0.18, 0.26);
+          break;
+      }
+    },
+    [playTone]
+  );
 
 
   // ---- Deck ----
@@ -224,6 +303,7 @@ function Taboo() {
 
   // ---- Game flow ----
   const startNewGame = () => {
+    playUi('forward');
     deckRef.current = shuffledIndices(TABOO_CARDS.length);
     deckPosRef.current = 0;
     setScores([0, 0]);
@@ -237,6 +317,7 @@ function Taboo() {
 
   const startTurn = () => {
     getAudioCtx(); // unlock audio on user gesture
+    playUi('start');
     setTurnLog([]);
     setCurrentCard(drawCard());
     endTimeRef.current = Date.now() + settings.turnSeconds * 1000;
@@ -259,7 +340,8 @@ function Taboo() {
     if (screen !== 'turn') return;
     timerRef.current = setInterval(() => {
       const remainingMs = endTimeRef.current - Date.now();
-      const remaining = Math.max(0, Math.ceil(remainingMs / 1000));
+      // Fractional seconds so the wave drains continuously, not in 1s steps
+      const remaining = Math.max(0, remainingMs / 1000);
       setTimeLeft(remaining);
       // Final 15 seconds: lobby music kicks in (once per turn)
       if (remaining > 0 && remaining <= 15 && !musicStartedRef.current) {
@@ -281,23 +363,20 @@ function Taboo() {
           music.pause();
           music.currentTime = 0;
         }
-        const buzzer = buzzerRef.current;
-        if (buzzer) {
-          buzzer.currentTime = 0;
-          buzzer.play().catch(() => {});
-        }
+        playClip(buzzerRef.current);
         if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
         setScreen('review');
       }
-    }, 100);
+    }, 50);
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
       timerRef.current = null;
     };
-  }, [screen, currentCard]);
+  }, [screen, currentCard, playClip]);
 
   // ---- Review / scoring ----
   const cycleOutcome = (index: number) => {
+    playUi('tick');
     setTurnLog((log) =>
       log.map((tc, i) => {
         if (i !== index) return tc;
@@ -335,6 +414,7 @@ function Taboo() {
             // Tie: sudden-death extra round
             setBonusRounds((b) => b + 1);
           } else {
+            playUi('fanfare');
             setWinner(newScores[0] > newScores[1] ? 0 : 1);
             setScreen('gameOver');
             return;
@@ -344,6 +424,7 @@ function Taboo() {
         const target = settings.targetScore;
         const reached = newScores[0] >= target || newScores[1] >= target;
         if (reached && newScores[0] !== newScores[1]) {
+          playUi('fanfare');
           setWinner(newScores[0] > newScores[1] ? 0 : 1);
           setScreen('gameOver');
           return;
@@ -351,10 +432,12 @@ function Taboo() {
         // Tie at/above target: keep playing until a round ends with a leader
       }
     }
+    playUi('forward');
     setScreen('scoreboard');
   };
 
   const endGameEarly = () => {
+    playUi('endGame');
     if (scores[0] === scores[1]) setWinner(-1);
     else setWinner(scores[0] > scores[1] ? 0 : 1);
     setScreen('gameOver');
@@ -362,36 +445,13 @@ function Taboo() {
 
   // ============ Render helpers ============
 
-  const renderTimer = () => {
-    const pct = Math.max(0, Math.min(1, timeLeft / settings.turnSeconds));
-    const urgent = timeLeft <= 10;
-    return (
-      <div className="w-full">
-        <div className="flex items-center justify-between mb-1">
-          <span className="taboo-heading text-lg">{teamNames[activeTeam]}</span>
-          <span
-            className={`taboo-timer text-3xl font-bold ${urgent ? 'text-red-400 taboo-pulse' : 'text-white'}`}
-          >
-            {timeLeft}
-          </span>
-        </div>
-        <div className="h-3 w-full rounded-full bg-black/30 overflow-hidden">
-          <div
-            className={`h-full rounded-full ${urgent ? 'bg-red-500' : 'bg-[#fa7268]'}`}
-            style={{ width: `${pct * 100}%`, transition: 'width 0.1s linear' }}
-          />
-        </div>
-      </div>
-    );
-  };
-
   const renderCard = (card: TabooCard) => (
     <motion.div
       key={card.word}
       initial={{ x: 60, opacity: 0 }}
       animate={{ x: 0, opacity: 1 }}
       transition={{ duration: 0.18 }}
-      className="taboo-card w-full max-w-sm mx-auto"
+      className="taboo-card w-full max-w-[15rem] mx-auto"
     >
       <div className="taboo-card-header">{card.word}</div>
       <ul className="taboo-card-words">
@@ -415,14 +475,32 @@ function Taboo() {
 
   return (
     <div
-      className="min-h-screen w-full flex flex-col items-center px-4 py-6"
+      className="taboo-root w-full flex flex-col items-center"
       style={{
         background: `radial-gradient(circle at 50% 20%, #5b2a86 0%, ${PURPLE_BG} 65%)`,
-        minHeight: '100dvh',
       }}
     >
       {/* Home screen backdrop: the "shh" face sits behind all content */}
       {screen === 'home' && <img src={tabooFace} alt="" className="taboo-face-bg" />}
+
+      {/* Turn backdrop: the countdown as a tide draining off the screen. Driven
+          by the game's own clock (controlled), so it can't drift from scoring. */}
+      {screen === 'turn' && (
+        <div className="taboo-wave-bg">
+          <WaveTimer
+            duration={settings.turnSeconds}
+            remaining={timeLeft}
+            showReadout={false}
+            theme={{
+              deep: '#2a1145',
+              violet: '#5b2a86',
+              glow: '#fa7268',
+              foam: '#fdf6f5',
+              crest: '#ffffff',
+            }}
+          />
+        </div>
+      )}
 
       {/* Screens swap instantly with entry animations only — AnimatePresence
           mode="wait" exit transitions hang under React StrictMode in dev. */}
@@ -434,19 +512,39 @@ function Taboo() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="relative z-10 flex flex-col items-center justify-center flex-1 w-full max-w-sm gap-6"
+            className="relative z-10 taboo-screen flex flex-col items-center justify-center gap-6"
           >
             <img src={tabooLogo} alt="Taboo" className="w-full max-w-xs" />
             <p className="taboo-heading text-center text-lg -mt-2">
               Say it… without saying it!
             </p>
-            <button className="taboo-btn taboo-btn-primary w-full" onClick={() => setScreen('setup')}>
+            <button
+              className="taboo-btn taboo-btn-primary w-full"
+              onClick={() => {
+                getAudioCtx(); // first gesture: unlock audio for the rest of the game
+                playUi('forward');
+                setScreen('setup');
+              }}
+            >
               Start Game
             </button>
-            <button className="taboo-btn taboo-btn-secondary w-full" onClick={() => setShowRules(true)}>
+            <button
+              className="taboo-btn taboo-btn-secondary w-full"
+              onClick={() => {
+                getAudioCtx();
+                playUi('open');
+                setShowRules(true);
+              }}
+            >
               How to Play
             </button>
-            <button className="taboo-btn taboo-btn-ghost w-full" onClick={() => navigate('/')}>
+            <button
+              className="taboo-btn taboo-btn-ghost w-full"
+              onClick={() => {
+                playUi('back');
+                navigate('/');
+              }}
+            >
               Back to Games
             </button>
           </motion.div>
@@ -459,7 +557,7 @@ function Taboo() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
-            className="flex flex-col w-full max-w-sm gap-5 flex-1"
+            className="taboo-screen flex flex-col gap-5"
           >
             <h2 className="taboo-heading text-3xl text-center">Game Setup</h2>
 
@@ -488,7 +586,10 @@ function Taboo() {
                   <button
                     key={s}
                     className={`taboo-chip ${settings.turnSeconds === s ? 'taboo-chip-active' : ''}`}
-                    onClick={() => setSettings({ ...settings, turnSeconds: s })}
+                    onClick={() => {
+                      playUi('select');
+                      setSettings({ ...settings, turnSeconds: s });
+                    }}
                   >
                     {s}s
                   </button>
@@ -501,13 +602,19 @@ function Taboo() {
               <div className="flex gap-2 mb-3">
                 <button
                   className={`taboo-chip flex-1 ${settings.gameMode === 'rounds' ? 'taboo-chip-active' : ''}`}
-                  onClick={() => setSettings({ ...settings, gameMode: 'rounds' })}
+                  onClick={() => {
+                    playUi('select');
+                    setSettings({ ...settings, gameMode: 'rounds' });
+                  }}
                 >
                   Fixed rounds
                 </button>
                 <button
                   className={`taboo-chip flex-1 ${settings.gameMode === 'target' ? 'taboo-chip-active' : ''}`}
-                  onClick={() => setSettings({ ...settings, gameMode: 'target' })}
+                  onClick={() => {
+                    playUi('select');
+                    setSettings({ ...settings, gameMode: 'target' });
+                  }}
                 >
                   Target score
                 </button>
@@ -518,7 +625,10 @@ function Taboo() {
                     <button
                       key={r}
                       className={`taboo-chip ${settings.roundsPerTeam === r ? 'taboo-chip-active' : ''}`}
-                      onClick={() => setSettings({ ...settings, roundsPerTeam: r })}
+                      onClick={() => {
+                        playUi('select');
+                        setSettings({ ...settings, roundsPerTeam: r });
+                      }}
                     >
                       {r} each
                     </button>
@@ -530,7 +640,10 @@ function Taboo() {
                     <button
                       key={t}
                       className={`taboo-chip ${settings.targetScore === t ? 'taboo-chip-active' : ''}`}
-                      onClick={() => setSettings({ ...settings, targetScore: t })}
+                      onClick={() => {
+                        playUi('select');
+                        setSettings({ ...settings, targetScore: t });
+                      }}
                     >
                       {t} pts
                     </button>
@@ -544,13 +657,19 @@ function Taboo() {
               <div className="flex gap-2">
                 <button
                   className={`taboo-chip flex-1 ${settings.penaltyStyle === 'opponent' ? 'taboo-chip-active' : ''}`}
-                  onClick={() => setSettings({ ...settings, penaltyStyle: 'opponent' })}
+                  onClick={() => {
+                    playUi('select');
+                    setSettings({ ...settings, penaltyStyle: 'opponent' });
+                  }}
                 >
                   Opponent +1
                 </button>
                 <button
                   className={`taboo-chip flex-1 ${settings.penaltyStyle === 'minus' ? 'taboo-chip-active' : ''}`}
-                  onClick={() => setSettings({ ...settings, penaltyStyle: 'minus' })}
+                  onClick={() => {
+                    playUi('select');
+                    setSettings({ ...settings, penaltyStyle: 'minus' });
+                  }}
                 >
                   Your team −1
                 </button>
@@ -561,7 +680,13 @@ function Taboo() {
               <button className="taboo-btn taboo-btn-primary w-full" onClick={startNewGame}>
                 Let's Play!
               </button>
-              <button className="taboo-btn taboo-btn-ghost w-full" onClick={() => setScreen('home')}>
+              <button
+                className="taboo-btn taboo-btn-ghost w-full"
+                onClick={() => {
+                  playUi('back');
+                  setScreen('home');
+                }}
+              >
                 Back
               </button>
             </div>
@@ -575,7 +700,7 @@ function Taboo() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
-            className="flex flex-col items-center justify-center flex-1 w-full max-w-sm gap-6 text-center"
+            className="taboo-screen flex flex-col items-center justify-center gap-6 text-center"
           >
             <div className="taboo-heading text-xl opacity-80">
               Round {currentRound}
@@ -610,9 +735,16 @@ function Taboo() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="flex flex-col flex-1 w-full max-w-sm gap-4"
+            className="relative z-10 taboo-screen flex flex-col gap-4"
           >
-            {renderTimer()}
+            <div className="taboo-turn-header flex items-baseline justify-between gap-3">
+              <span className="taboo-heading text-lg">{teamNames[activeTeam]}</span>
+              <span
+                className={`taboo-timer text-4xl ${timeLeft <= 10 ? 'text-red-400 taboo-pulse' : 'text-white'}`}
+              >
+                {Math.ceil(timeLeft)}
+              </span>
+            </div>
             <div className="flex-1 flex items-center w-full">
               {currentCard && renderCard(currentCard)}
             </div>
@@ -630,7 +762,7 @@ function Taboo() {
                 🚨 BUZZ!
               </button>
             </div>
-            <div className="text-center text-sm text-white/70 pb-1">
+            <div className="taboo-turn-tally text-center text-sm">
               {correctCount} correct · {penaltyCount} penalties
             </div>
           </motion.div>
@@ -643,13 +775,13 @@ function Taboo() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
-            className="flex flex-col w-full max-w-sm gap-4 flex-1"
+            className="taboo-screen flex flex-col gap-4"
           >
             <h2 className="taboo-heading text-3xl text-center">Time's Up!</h2>
             <p className="text-center text-white/80 text-sm -mt-2">
               Made a mistake? Tap any card to change its result.
             </p>
-            <div className="flex flex-col gap-2 overflow-y-auto flex-1">
+            <div className="flex flex-col gap-2">
               {turnLog.length === 0 && (
                 <p className="text-center text-white/60 py-8">No cards played this turn.</p>
               )}
@@ -689,7 +821,7 @@ function Taboo() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
-            className="flex flex-col items-center justify-center flex-1 w-full max-w-sm gap-6"
+            className="taboo-screen flex flex-col items-center justify-center gap-6"
           >
             <h2 className="taboo-heading text-3xl">Scoreboard</h2>
             <div className="w-full flex flex-col gap-3">
@@ -708,7 +840,13 @@ function Taboo() {
                 ? `Round ${currentRound} of ${totalRounds}`
                 : `First to ${settings.targetScore} (equal turns)`}
             </div>
-            <button className="taboo-btn taboo-btn-primary w-full" onClick={() => setScreen('handoff')}>
+            <button
+              className="taboo-btn taboo-btn-primary w-full"
+              onClick={() => {
+                playUi('forward');
+                setScreen('handoff');
+              }}
+            >
               Next: {teamNames[activeTeam]}
             </button>
             <button className="taboo-btn taboo-btn-ghost w-full" onClick={endGameEarly}>
@@ -724,7 +862,7 @@ function Taboo() {
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0 }}
-            className="flex flex-col items-center justify-center flex-1 w-full max-w-sm gap-6 text-center"
+            className="taboo-screen flex flex-col items-center justify-center gap-6 text-center"
           >
             <h2 className="taboo-logo-sm">
               {winner === -1 ? "It's a Tie!" : `${teamNames[winner ?? 0]} Wins! 🎉`}
@@ -743,7 +881,13 @@ function Taboo() {
             <button className="taboo-btn taboo-btn-primary w-full" onClick={startNewGame}>
               Play Again
             </button>
-            <button className="taboo-btn taboo-btn-ghost w-full" onClick={() => setScreen('home')}>
+            <button
+              className="taboo-btn taboo-btn-ghost w-full"
+              onClick={() => {
+                playUi('back');
+                setScreen('home');
+              }}
+            >
               Main Menu
             </button>
           </motion.div>
@@ -758,13 +902,16 @@ function Taboo() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50"
-            onClick={() => setShowRules(false)}
+            onClick={() => {
+              playUi('close');
+              setShowRules(false);
+            }}
           >
             <motion.div
               initial={{ scale: 0.9 }}
               animate={{ scale: 1 }}
               exit={{ scale: 0.9 }}
-              className="taboo-panel max-w-sm w-full max-h-[80vh] overflow-y-auto"
+              className="taboo-panel max-w-sm w-full max-h-[80dvh] overflow-y-auto"
               onClick={(e) => e.stopPropagation()}
             >
               <h3 className="taboo-heading text-2xl mb-3 text-center">How to Play</h3>
@@ -779,7 +926,10 @@ function Taboo() {
               </ul>
               <button
                 className="taboo-btn taboo-btn-primary w-full mt-4"
-                onClick={() => setShowRules(false)}
+                onClick={() => {
+              playUi('close');
+              setShowRules(false);
+            }}
               >
                 Got it!
               </button>
