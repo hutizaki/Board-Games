@@ -511,9 +511,11 @@ function Taboo() {
                interval also logs the dead card, stops the music, and buzzes. */
             endsAt={turnEndsAt}
             showReadout={false}
-            /* The sea gets choppy exactly when the lobby music starts */
-            waveSpeed={timeLeft <= 15 ? 2.6 : 1.1}
-            waveHeight={timeLeft <= 15 ? 0.05 : 0.028}
+            /* Constant sea. Stepping these at the 15s mark read as chaotic, so
+               both sit midway between the old calm and choppy values. The
+               component still eases amplitude with the tide on its own. */
+            waveSpeed={1.85}
+            waveHeight={0.039}
             theme={{
               deep: '#2a1145',
               violet: '#5b2a86',
