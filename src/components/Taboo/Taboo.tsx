@@ -782,24 +782,29 @@ function Taboo() {
           >
             <h2 className="taboo-heading text-3xl text-center">Players</h2>
 
-            {/* Which team the next tap adds to. Doubles as the live head count. */}
-            <div className="flex gap-2">
-              {([0, 1] as const).map((i) => (
-                <button
-                  key={i}
-                  className={`taboo-team-tab taboo-team-tab-${i} ${activeRoster === i ? 'is-active' : ''}`}
-                  onClick={() => {
-                    playUi('select');
-                    setActiveRoster(i);
-                  }}
-                >
-                  <span className="truncate">{teamNames[i] || `Team ${i === 0 ? 'A' : 'B'}`}</span>
-                  <span className="taboo-team-count">{rosters[i].length}</span>
-                </button>
-              ))}
-            </div>
+            {/* Which team the next tap adds to. Doubles as the live head count.
+                The selected tab and the panel below join into one shape; this
+                wrapper only removes the gap between them and draws nothing. */}
+            <div>
+              <div className="taboo-tabs">
+                {([0, 1] as const).map((i) => (
+                  <button
+                    key={i}
+                    className={`taboo-team-tab taboo-team-tab-${i} ${activeRoster === i ? 'is-active' : ''}`}
+                    onClick={() => {
+                      playUi('select');
+                      setActiveRoster(i);
+                    }}
+                  >
+                    <span className="truncate">
+                      {teamNames[i] || `Team ${i === 0 ? 'A' : 'B'}`}
+                    </span>
+                    <span className="taboo-team-count">{rosters[i].length}</span>
+                  </button>
+                ))}
+              </div>
 
-            <div className="taboo-panel">
+              <div className={`taboo-panel taboo-tabpanel taboo-tabpanel-${activeRoster}`}>
               <label className="taboo-label">
                 Adding to {teamNames[activeRoster] || (activeRoster === 0 ? 'Team A' : 'Team B')}
               </label>
@@ -893,6 +898,7 @@ function Taboo() {
                   Type a name above and it's saved for next time.
                 </p>
               )}
+              </div>
             </div>
 
             {/* The two line-ups */}

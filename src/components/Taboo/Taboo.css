@@ -253,9 +253,17 @@
   --team: #45c0b0;
 }
 
-/* Which team the next tap adds to */
+/* Which team the next tap adds to. The selected tab and the panel beneath it
+   read as a single tabbed shape, with no wrapper box around the pair: the tab
+   simply drops its bottom border, and the panel paints its top border only
+   across the part the tab doesn't cover. */
+.taboo-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
 .taboo-team-tab {
-  flex: 1 1 0;
   min-width: 0;
   display: flex;
   align-items: center;
@@ -270,10 +278,47 @@
   font-size: 1rem;
 }
 
+/* Shared fill, so the tab and the panel below it are one continuous surface */
+.taboo-team-tab.is-active,
+.taboo-tabpanel {
+  --tab-fill: color-mix(in srgb, var(--team) 18%, rgba(0, 0, 0, 0.3));
+}
+
 .taboo-team-tab.is-active {
+  background: var(--tab-fill);
   border-color: var(--team);
-  background: color-mix(in srgb, var(--team) 26%, rgba(0, 0, 0, 0.25));
-  box-shadow: 0 0 14px color-mix(in srgb, var(--team) 45%, transparent);
+  /* the join: no bottom edge, square bottom corners, no glow across the seam */
+  border-bottom: none;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  box-shadow: none;
+  /* replace the height lost with the bottom border so both tabs stay level */
+  padding-bottom: calc(0.7rem + 2px);
+}
+
+.taboo-tabpanel {
+  background-color: var(--tab-fill);
+  border-color: var(--team);
+  border-top-color: transparent;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+  /* Top edge drawn as a background line instead of a border, so it can stop
+     where the active tab begins. A tab is (100% - gap) / 2 wide, leaving
+     50% + half the gap exposed on the other side. */
+  background-image: linear-gradient(var(--team), var(--team));
+  background-repeat: no-repeat;
+  background-origin: border-box;
+  background-size: calc(50% + 0.25rem) 2px;
+}
+
+.taboo-tabpanel-0 {
+  --team: #fa7268;
+  background-position: right top;
+}
+
+.taboo-tabpanel-1 {
+  --team: #45c0b0;
+  background-position: left top;
 }
 
 .taboo-team-count {
