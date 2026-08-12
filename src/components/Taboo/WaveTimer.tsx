@@ -4,6 +4,7 @@
    and no sibling imports. Cost is fast-refresh falling back to a full reload
    when this one file is edited. */
 import {
+  memo,
   useState,
   useRef,
   useEffect,
@@ -562,4 +563,10 @@ function Pill({ children, onClick, tone, solid, interactive }: PillProps) {
   );
 }
 
-export default WaveTimer;
+/**
+ * Memoised: the host re-renders on every card change, and the wave's props are
+ * fixed for the whole turn. Without this, each button press dragged a full
+ * re-render of the wave through the same frame as the card swap. Its own rAF
+ * loop still drives its animation.
+ */
+export default memo(WaveTimer);

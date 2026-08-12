@@ -3,12 +3,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import './Taboo.css';
 import { TABOO_CARDS, type TabooCard } from './tabooCards';
-import lobbyMusicSrc from '../../assets/audio/kahoot-lobby-music.mp3';
-import buzzerSrc from '../../assets/audio/buzzer.mp3';
-import dingSrc from '../../assets/audio/ding.mp3';
-import boomSrc from '../../assets/audio/vine-boom.mp3';
-import tabooLogo from '../../assets/Taboo/tabooLogo.png';
-import tabooFace from '../../assets/Taboo/tabooFace.png';
+import { useTabooAudio } from './tabooAudio';
+import tabooLogo from '../../assets/Taboo/tabooLogo.webp';
+import tabooFace from '../../assets/Taboo/tabooFace.webp';
 import WaveTimer from './WaveTimer';
 import TeamsScreen from './TeamsScreen';
 import {
@@ -38,17 +35,6 @@ interface TurnCard {
   card: TabooCard;
   outcome: Outcome;
 }
-
-type UiSound =
-  | 'forward'
-  | 'back'
-  | 'select'
-  | 'open'
-  | 'close'
-  | 'tick'
-  | 'start'
-  | 'fanfare'
-  | 'endGame';
 
 /** What a buzz or a pass costs. Buzzing and passing are set separately —
  *  plenty of houses punish a slip-up but let people skip a hard card freely. */
@@ -96,6 +82,15 @@ const WAVE_HEIGHT = 0.039;
 // of its width. On a phone that makes the same figure read as a much steeper
 // swell, so narrow screens get half the height.
 const NARROW_SCREEN = '(max-width: 639px)';
+// Module constant, not an inline literal: a fresh object each render would
+// defeat the memo on WaveTimer and re-render the wave on every button press.
+const WAVE_THEME = {
+  deep: '#2a1145',
+  violet: '#5b2a86',
+  glow: '#fa7268',
+  foam: '#f2e3dc',
+  crest: '#ffffff',
+} as const;
 
 // Cycle order used by the review screen's tap-to-correct ("Oops") feature
 const OUTCOME_CYCLE: Outcome[] = ['correct', 'buzzed', 'passed', 'expired'];
@@ -148,6 +143,7 @@ function shuffledIndices(count: number): number[] {
 
 function Taboo() {
   const navigate = useNavigate();
+  const { unlock, playClip, playUi, playPass, startMusic, stopMusic } = useTabooAudio();
 
   const [screen, setScreen] = useState<Screen>('home');
   const [settings, setSettings] = useState<TabooSettings>(loadSettings);
@@ -200,11 +196,6 @@ function Taboo() {
   const currentCardRef = useRef<TabooCard | null>(null);
   // Last whole-second value pushed to state, so the header repaints at 1 Hz.
   const lastShownRef = useRef(-1);
-  const audioCtxRef = useRef<AudioContext | null>(null);
-  const musicRef = useRef<HTMLAudioElement | null>(null);
-  const buzzerRef = useRef<HTMLAudioElement | null>(null);
-  const dingRef = useRef<HTMLAudioElement | null>(null);
-  const boomRef = useRef<HTMLAudioElement | null>(null);
   const musicStartedRef = useRef(false);
 
   // Turns alternate from whichever side won the toss, so both teams still get
@@ -252,29 +243,6 @@ function Taboo() {
     };
   }, []);
 
-  // ---- Preload turn audio; stop music if the game unmounts mid-countdown ----
-  useEffect(() => {
-    musicRef.current = new Audio(lobbyMusicSrc);
-    musicRef.current.preload = 'auto';
-    musicRef.current.volume = 0.5;
-    buzzerRef.current = new Audio(buzzerSrc);
-    buzzerRef.current.preload = 'auto';
-    buzzerRef.current.volume = 0.6;
-    dingRef.current = new Audio(dingSrc);
-    dingRef.current.preload = 'auto';
-    dingRef.current.volume = 0.6;
-    boomRef.current = new Audio(boomSrc);
-    boomRef.current.preload = 'auto';
-    boomRef.current.volume = 0.55;
-    return () => {
-      musicRef.current?.pause();
-      musicRef.current = null;
-      buzzerRef.current = null;
-      dingRef.current = null;
-      boomRef.current = null;
-    };
-  }, []);
-
   // ---- Persist settings ----
   useEffect(() => {
     try {
@@ -283,118 +251,6 @@ function Taboo() {
       // storage unavailable; setting just won't persist
     }
   }, [settings]);
-
-  // ---- Sounds (WebAudio, no assets needed) ----
-  const getAudioCtx = useCallback(() => {
-    if (!audioCtxRef.current) {
-      const Ctx =
-        window.AudioContext ||
-        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-      if (Ctx) audioCtxRef.current = new Ctx();
-    }
-    if (audioCtxRef.current?.state === 'suspended') {
-      audioCtxRef.current.resume().catch(() => {});
-    }
-    return audioCtxRef.current;
-  }, []);
-
-  const playTone = useCallback(
-    (freq: number, duration: number, type: OscillatorType = 'sine', volume = 0.2, delay = 0) => {
-      const ctx = getAudioCtx();
-      if (!ctx) return;
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = type;
-      osc.frequency.value = freq;
-      const start = ctx.currentTime + delay;
-      gain.gain.setValueAtTime(volume, start);
-      gain.gain.exponentialRampToValueAtTime(0.001, start + duration);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start(start);
-      osc.stop(start + duration);
-    },
-    [getAudioCtx]
-  );
-
-  /**
-   * Play a one-shot clip. Each press gets its own cloned element so rapid
-   * repeats layer over each other instead of the new press cutting off the
-   * previous one. Clones share the already-fetched media, so no extra network.
-   */
-  const playClip = useCallback((base: HTMLAudioElement | null) => {
-    if (!base) return;
-    const node = base.cloneNode() as HTMLAudioElement;
-    node.volume = base.volume;
-    node.play().catch(() => {});
-  }, []);
-
-  const playCorrect = useCallback(() => {
-    playClip(dingRef.current);
-  }, [playClip]);
-
-  const playBuzz = useCallback(() => {
-    playClip(boomRef.current);
-    if (navigator.vibrate) navigator.vibrate(300);
-  }, [playClip]);
-
-  const playPass = useCallback(() => {
-    // Quick downward "swipe it away" blip
-    playTone(520, 0.09, 'triangle', 0.18);
-    playTone(390, 0.12, 'triangle', 0.18, 0.07);
-  }, [playTone]);
-
-  /**
-   * UI button palette — short, bright game-show blips that share a family with
-   * the ding/buzzer effects. Each kind is a small note sequence so every button
-   * reads as its own action by ear.
-   */
-  const playUi = useCallback(
-    (kind: UiSound) => {
-      switch (kind) {
-        case 'forward': // advance: setup, next turn, apply scores
-          playTone(587, 0.08, 'sine', 0.18);
-          playTone(880, 0.12, 'sine', 0.18, 0.06);
-          break;
-        case 'back': // retreat: back buttons, main menu
-          playTone(587, 0.08, 'sine', 0.15);
-          playTone(392, 0.12, 'sine', 0.15, 0.06);
-          break;
-        case 'select': // chips / settings toggles
-          playTone(784, 0.05, 'square', 0.1);
-          break;
-        case 'open': // modal opens
-          playTone(659, 0.07, 'triangle', 0.16);
-          playTone(988, 0.1, 'triangle', 0.16, 0.05);
-          break;
-        case 'close': // modal dismiss
-          playTone(784, 0.07, 'triangle', 0.14);
-          playTone(523, 0.1, 'triangle', 0.14, 0.05);
-          break;
-        case 'tick': // review row correction
-          playTone(1047, 0.04, 'square', 0.12);
-          break;
-        case 'start': // kicking off a turn — bright three-note call
-          playTone(523, 0.1, 'sine', 0.2);
-          playTone(659, 0.1, 'sine', 0.2, 0.09);
-          playTone(1047, 0.22, 'sine', 0.22, 0.18);
-          break;
-        case 'fanfare': // winner screen
-          playTone(523, 0.12, 'sine', 0.22);
-          playTone(659, 0.12, 'sine', 0.22, 0.12);
-          playTone(784, 0.12, 'sine', 0.22, 0.24);
-          playTone(1047, 0.45, 'sine', 0.25, 0.36);
-          break;
-        case 'endGame': // bowing out early — settling descent
-          playTone(659, 0.14, 'sine', 0.18);
-          playTone(523, 0.14, 'sine', 0.18, 0.13);
-          playTone(392, 0.3, 'sine', 0.18, 0.26);
-          break;
-      }
-    },
-    [playTone]
-  );
-
 
   // ---- Deck ----
   // One shoe for the whole sitting: the position carries across games so a
@@ -464,7 +320,7 @@ function Taboo() {
   };
 
   const startTurn = () => {
-    getAudioCtx(); // unlock audio on user gesture
+    unlock();
     playUi('start');
     setBeforeApply(null); // the previous turn is closed for corrections now
     setTurnLog([]);
@@ -491,9 +347,11 @@ function Taboo() {
 
   const markOutcome = (outcome: Outcome) => {
     if (!currentCard) return;
-    if (outcome === 'correct') playCorrect();
-    else if (outcome === 'buzzed') playBuzz();
-    else playPass();
+    if (outcome === 'correct') playClip('ding');
+    else if (outcome === 'buzzed') {
+      playClip('boom');
+      navigator.vibrate?.(300);
+    } else playPass();
     setTurnLog((log) => [...log, { card: currentCard, outcome }]);
     setCurrentCard(drawCard());
   };
@@ -514,23 +372,15 @@ function Taboo() {
       // Final 15 seconds: lobby music kicks in (once per turn)
       if (remaining > 0 && remaining <= 15 && !musicStartedRef.current) {
         musicStartedRef.current = true;
-        const music = musicRef.current;
-        if (music) {
-          music.currentTime = 0;
-          music.play().catch(() => {});
-        }
+        startMusic();
       }
       if (remainingMs <= 0) {
         // Time's up: the card in play counts for nothing (correctable on review)
         const inPlay = currentCardRef.current;
         setTurnLog((log) => (inPlay ? [...log, { card: inPlay, outcome: 'expired' }] : log));
         setCurrentCard(null);
-        const music = musicRef.current;
-        if (music) {
-          music.pause();
-          music.currentTime = 0;
-        }
-        playClip(buzzerRef.current);
+        stopMusic();
+        playClip('buzzer');
         if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
         setScreen('review');
       }
@@ -539,7 +389,7 @@ function Taboo() {
       if (timerRef.current) clearInterval(timerRef.current);
       timerRef.current = null;
     };
-  }, [screen, turnEndsAt, playClip]);
+  }, [screen, turnEndsAt, playClip, startMusic, stopMusic]);
 
   // ---- Review / scoring ----
   const cycleOutcome = (index: number) => {
@@ -712,13 +562,7 @@ function Taboo() {
             waveSpeed={WAVE_SPEED}
             waveHeight={narrowScreen ? WAVE_HEIGHT / 2 : WAVE_HEIGHT}
             easeWithTide={false}
-            theme={{
-              deep: '#2a1145',
-              violet: '#5b2a86',
-              glow: '#fa7268',
-              foam: '#f2e3dc',
-              crest: '#ffffff',
-            }}
+            theme={WAVE_THEME}
           />
         </div>
       )}
@@ -742,7 +586,6 @@ function Taboo() {
             <button
               className="taboo-btn taboo-btn-primary w-full"
               onClick={() => {
-                getAudioCtx(); // first gesture: unlock audio for the rest of the game
                 playUi('forward');
                 setScreen('settings');
               }}
@@ -752,7 +595,6 @@ function Taboo() {
             <button
               className="taboo-btn taboo-btn-secondary w-full"
               onClick={() => {
-                getAudioCtx();
                 playUi('open');
                 setShowRules(true);
               }}

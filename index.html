@@ -30,7 +30,14 @@
     <!-- Performance optimizations -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Comic+Neue:wght@400;700&display=swap" rel="stylesheet">
+    <!-- All web fonts requested in one round trip. These used to sit in @import
+         rules inside the component CSS, which forced the browser to download and
+         parse that stylesheet before it could even discover the font URLs —
+         three serialized round trips before any text painted. -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Comic+Neue:wght@400;700&family=Bebas+Neue&family=Permanent+Marker&family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    >
     
     <title>Board Game Score Calculator</title>
     

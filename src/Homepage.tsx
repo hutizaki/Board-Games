@@ -3,7 +3,7 @@ import './Homepage.css'
 import ScrabbleLogo from './assets/Scrabble_2022.svg?react'
 import OddOneOutLogo from './assets/OddOneOut.png'
 import NertzLogo from './assets/Nertz/nertzApp.png'
-import TabooLogo from './assets/Taboo/tabooFullLogo.png'
+import TabooLogo from './assets/Taboo/tabooFullLogo.webp'
 
 interface Game {
   id: number
