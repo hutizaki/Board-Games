@@ -30,7 +30,14 @@
     <!-- Performance optimizations -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Comic+Neue:wght@400;700&display=swap" rel="stylesheet">
+    <!-- All web fonts requested in one round trip. These used to sit in @import
+         rules inside the component CSS, which forced the browser to download and
+         parse that stylesheet before it could even discover the font URLs —
+         three serialized round trips before any text painted. -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Comic+Neue:wght@400;700&family=Bebas+Neue&family=Permanent+Marker&family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    >
     
     <title>Board Game Score Calculator</title>
     
@@ -129,10 +136,10 @@
         overscroll-behavior-y: contain;
       }
     </style>
-    <script type="module" crossorigin src="/Board-Games/assets/index-CTpaGntx.js"></script>
+    <script type="module" crossorigin src="/Board-Games/assets/index-BzJlxQ7s.js"></script>
     <link rel="modulepreload" crossorigin href="/Board-Games/assets/react-vendor-CBFOBm_x.js">
     <link rel="modulepreload" crossorigin href="/Board-Games/assets/framer-motion-8rbRV54F.js">
-    <link rel="stylesheet" crossorigin href="/Board-Games/assets/index-CppzXxZN.css">
+    <link rel="stylesheet" crossorigin href="/Board-Games/assets/index-6nCG0CsX.css">
   </head>
   <body>
     <div id="root"></div>
